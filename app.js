@@ -2,7 +2,7 @@
 // منهج الذكاء الاصطناعي - PWA with Supabase Auth
 // ============================================================
 
-const SUPABASE_URL = "https://urzwahnalea6carhaydm.supabase.co";
+const SUPABASE_URL = "https://urzwahnaketicarhaydm.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVyendhaG5ha2V0aWNhcmhheWRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MzIyOTUsImV4cCI6MjA5NTIwODI5NX0.ukkCi4DR4XnbQSTk2lMQkuXQivzmSnFt3nq6cUUCdnw";
 
 // Register Service Worker
