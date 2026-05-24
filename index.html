@@ -612,6 +612,20 @@ function buildRecs(secRes,pct){
   return r;
 }
 
+async function forgotPassword(){
+  const email = document.getElementById('authEmail').value.trim();
+  if(!email){ setMsg('<div class="auth-err">أدخل بريدك الإلكتروني أولاً</div>'); return; }
+  try{
+    const {error} = await getSB().auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://anaqweh.github.io/ai-curriculum/'
+    });
+    if(error) throw error;
+    setMsg('<div class="auth-info">✅ تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني</div>');
+  } catch(e){
+    setMsg('<div class="auth-err">' + e.message + '</div>');
+  }
+}
+
 function resetAll(){
   selGrade=null;
   document.querySelectorAll('.grade-card').forEach(c=>c.classList.remove('selected'));
