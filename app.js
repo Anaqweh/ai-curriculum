@@ -1,11 +1,87 @@
 // ============================================================
-// منهج الذكاء الاصطناعي - PWA
+// منهج الذكاء الاصطناعي - PWA with Supabase Auth
 // ============================================================
+
+const SUPABASE_URL = "https://urzwahnalea6carhaydm.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVyendhaG5ha2V0aWNhcmhheWRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MzIyOTUsImV4cCI6MjA5NTIwODI5NX0.ukkCi4DR4XnbQSTk2lMQkuXQivzmSnFt3nq6cUUCdnw";
 
 // Register Service Worker
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js"));
 }
+
+// ============================================================
+// SUPABASE CLIENT
+// ============================================================
+const sb = {
+  async req(path, opts = {}) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${sb.token || SUPABASE_KEY}`,
+        "Content-Type": "application/json",
+        Prefer: opts.prefer || "",
+        ...opts.headers,
+      },
+      ...opts,
+    });
+    if (!res.ok && res.status !== 204) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || res.statusText);
+    }
+    return res.status === 204 ? null : res.json();
+  },
+
+  async authReq(path, body) {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/${path}`, {
+      method: "POST",
+      headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error_description || data.msg || "خطأ في المصادقة");
+    return data;
+  },
+
+  token: null,
+  userId: null,
+  userEmail: null,
+
+  async signUp(email, password) {
+    const data = await sb.authReq("signup", { email, password });
+    if (data.access_token) { sb.token = data.access_token; sb.userId = data.user.id; sb.userEmail = email; }
+    return data;
+  },
+
+  async signIn(email, password) {
+    const data = await sb.authReq("token?grant_type=password", { email, password });
+    sb.token = data.access_token;
+    sb.userId = data.user.id;
+    sb.userEmail = data.user.email;
+    return data;
+  },
+
+  async signOut() {
+    await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
+      method: "POST",
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${sb.token}` },
+    });
+    sb.token = null; sb.userId = null; sb.userEmail = null;
+  },
+
+  async getProgress() {
+    const rows = await sb.req(`progress?user_id=eq.${sb.userId}&select=*`);
+    return rows && rows[0] ? rows[0] : null;
+  },
+
+  async saveProgress(completed, scores) {
+    await sb.req(`progress?user_id=eq.${sb.userId}`, {
+      method: "PATCH",
+      prefer: "return=minimal",
+      body: JSON.stringify({ completed_lessons: completed, scores, updated_at: new Date().toISOString() }),
+    });
+  },
+};
 
 // ============================================================
 // DATA
@@ -87,11 +163,14 @@ const curriculum = [
 // ============================================================
 // STATE
 // ============================================================
-const STORAGE_KEY = "ai_pwa_progress_v1";
 let state = {
-  screen: "home",
+  screen: "login", // login | register | home | lesson | quiz | games | stats
+  authMode: "login",
+  authEmail: "",
+  authPassword: "",
+  authError: "",
+  authLoading: false,
   activeLesson: null,
-  lessonTab: "content", // content | quiz
   quizIdx: 0,
   quizSelected: null,
   quizScore: 0,
@@ -100,18 +179,37 @@ let state = {
   gameFlipped: [],
   gameMatched: [],
   gameMoves: 0,
-  progress: loadProgress(),
+  syncStatus: "",
+  progress: { completed: [], scores: {} },
 };
 
-function loadProgress() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { completed: [], scores: {} }; }
-  catch { return { completed: [], scores: {} }; }
+// ============================================================
+// PROGRESS SYNC
+// ============================================================
+async function loadCloudProgress() {
+  try {
+    const row = await sb.getProgress();
+    if (row) {
+      state.progress = {
+        completed: row.completed_lessons || [],
+        scores: row.scores || {},
+      };
+    }
+  } catch (e) {
+    console.error("Load error:", e);
+  }
 }
-function saveProgress() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.progress)); } catch {}
-}
-function getTotalStars() {
-  return Object.values(state.progress.scores).reduce((a, b) => a + b, 0);
+
+async function saveCloudProgress() {
+  try {
+    state.syncStatus = "saving";
+    await sb.saveProgress(state.progress.completed, state.progress.scores);
+    state.syncStatus = "saved";
+    setTimeout(() => { state.syncStatus = ""; render(); }, 2000);
+  } catch (e) {
+    state.syncStatus = "error";
+    console.error("Save error:", e);
+  }
 }
 
 // ============================================================
@@ -122,6 +220,9 @@ function el(tag, attrs = {}, ...children) {
   for (const [k, v] of Object.entries(attrs)) {
     if (k === "style" && typeof v === "object") Object.assign(e.style, v);
     else if (k.startsWith("on")) e.addEventListener(k.slice(2).toLowerCase(), v);
+    else if (k === "value") e.value = v;
+    else if (k === "placeholder") e.placeholder = v;
+    else if (k === "type") e.type = v;
     else e.setAttribute(k, v);
   }
   for (const c of children.flat()) {
@@ -137,53 +238,126 @@ function render() {
   root.appendChild(buildScreen());
 }
 
-// ============================================================
-// SCREENS
-// ============================================================
 function buildScreen() {
-  switch (state.screen) {
-    case "home": return buildHome();
-    case "lesson": return buildLesson();
-    case "quiz": return buildQuiz();
-    case "games": return buildGames();
-    case "stats": return buildStats();
-    default: return buildHome();
-  }
+  if (state.screen === "login" || state.screen === "register") return buildAuth();
+  if (state.screen === "home") return buildHome();
+  if (state.screen === "lesson") return buildLesson();
+  if (state.screen === "quiz") return buildQuiz();
+  if (state.screen === "games") return buildGames();
+  if (state.screen === "stats") return buildStats();
+  return buildAuth();
 }
 
-// ---- HOME ----
+// ============================================================
+// AUTH SCREEN
+// ============================================================
+function buildAuth() {
+  const isLogin = state.screen === "login";
+  return el("div", { style: S.authRoot },
+    el("div", { style: S.authGlow }),
+    el("div", { style: S.authLogo }, "🤖"),
+    el("h1", { style: S.authTitle }, "منهج الذكاء الاصطناعي"),
+    el("p", { style: S.authSub }, "المرحلة المتوسطة"),
+
+    el("div", { style: S.authCard },
+      el("div", { style: S.authTabs },
+        el("button", {
+          style: { ...S.authTab, ...(isLogin ? S.authTabActive : {}) },
+          onclick: () => { state.screen = "login"; state.authError = ""; render(); },
+        }, "تسجيل الدخول"),
+        el("button", {
+          style: { ...S.authTab, ...(!isLogin ? S.authTabActive : {}) },
+          onclick: () => { state.screen = "register"; state.authError = ""; render(); },
+        }, "حساب جديد"),
+      ),
+
+      el("div", { style: S.authForm },
+        el("label", { style: S.authLabel }, "البريد الإلكتروني"),
+        el("input", {
+          style: S.authInput,
+          type: "email",
+          placeholder: "example@email.com",
+          value: state.authEmail,
+          oninput: (e) => state.authEmail = e.target.value,
+        }),
+        el("label", { style: S.authLabel }, "كلمة المرور"),
+        el("input", {
+          style: S.authInput,
+          type: "password",
+          placeholder: "••••••••",
+          value: state.authPassword,
+          oninput: (e) => state.authPassword = e.target.value,
+        }),
+
+        state.authError ? el("div", { style: S.authError }, "⚠️ " + state.authError) : null,
+
+        el("button", {
+          style: { ...S.authBtn, opacity: state.authLoading ? 0.6 : 1 },
+          onclick: async () => {
+            if (state.authLoading) return;
+            state.authError = "";
+            state.authLoading = true;
+            render();
+            try {
+              if (isLogin) {
+                await sb.signIn(state.authEmail, state.authPassword);
+              } else {
+                await sb.signUp(state.authEmail, state.authPassword);
+              }
+              await loadCloudProgress();
+              state.screen = "home";
+              state.authLoading = false;
+              render();
+            } catch (e) {
+              state.authError = e.message;
+              state.authLoading = false;
+              render();
+            }
+          },
+        }, state.authLoading ? "جاري التحميل..." : isLogin ? "دخول 🚀" : "إنشاء حساب ✨"),
+      ),
+    ),
+  );
+}
+
+// ============================================================
+// HOME SCREEN
+// ============================================================
 function buildHome() {
   const done = state.progress.completed.length;
   const pct = Math.round((done / curriculum.length) * 100);
-  const stars = getTotalStars();
+  const stars = Object.values(state.progress.scores).reduce((a, b) => a + b, 0);
 
   return el("div", { style: S.root },
-    // Header
     el("div", { style: S.header },
       el("div", { style: S.headerGlow }),
       el("div", { style: S.logo }, "🤖"),
       el("h1", { style: S.title }, "منهج الذكاء الاصطناعي"),
-      el("p", { style: S.subtitle }, "المرحلة المتوسطة"),
+      el("p", { style: S.subtitle }, sb.userEmail || ""),
       el("div", { style: S.badgesRow },
         el("span", { style: S.starBadge }, `⭐ ${stars} نجمة`),
         el("span", { style: S.progressBadge }, `${done}/${curriculum.length} درس`),
+        state.syncStatus === "saved" ? el("span", { style: S.syncBadge }, "☁️ محفوظ") :
+        state.syncStatus === "saving" ? el("span", { style: S.syncBadge }, "⏳ حفظ...") :
+        state.syncStatus === "error" ? el("span", { style: { ...S.syncBadge, color: "#FF6584" } }, "⚠️ خطأ") : null,
       ),
     ),
-    // Progress bar
     el("div", { style: S.progressTrack },
       el("div", { style: { ...S.progressFill, width: `${pct}%` } }),
     ),
-    // Nav
     buildNav("home"),
-    // Lessons
     el("div", { style: S.lessons },
       ...curriculum.map((lesson, i) => buildLessonCard(lesson, i)),
     ),
-    // Install hint
-    el("div", { style: S.installHint },
-      el("span", { style: S.installIcon }, "📲"),
-      el("span", {}, "اضغط على ＂مشاركة＂ ثم ＂إضافة للشاشة الرئيسية＂ لتثبيت التطبيق"),
-    ),
+    el("button", {
+      style: S.logoutBtn,
+      onclick: async () => {
+        await sb.signOut();
+        state.screen = "login";
+        state.progress = { completed: [], scores: {} };
+        render();
+      },
+    }, "تسجيل الخروج →"),
   );
 }
 
@@ -195,7 +369,6 @@ function buildLessonCard(lesson, i) {
     onclick: () => {
       if (locked) return;
       state.activeLesson = lesson;
-      state.lessonTab = "content";
       state.screen = "lesson";
       render();
     },
@@ -204,11 +377,9 @@ function buildLessonCard(lesson, i) {
     el("div", { style: S.cardBody },
       el("div", { style: S.cardTitle }, lesson.title),
       el("div", { style: S.cardMeta },
-        done
-          ? el("span", { style: { color: "#43C6AC", fontSize: "13px" } }, "✅ مكتمل")
-          : locked
-            ? el("span", { style: { color: "#777", fontSize: "13px" } }, "🔒 مقفل")
-            : el("span", { style: { color: lesson.color, fontSize: "13px" } }, "ابدأ الآن ←"),
+        done ? el("span", { style: { color: "#43C6AC", fontSize: "13px" } }, "✅ مكتمل")
+          : locked ? el("span", { style: { color: "#777", fontSize: "13px" } }, "🔒 مقفل")
+          : el("span", { style: { color: lesson.color, fontSize: "13px" } }, "ابدأ الآن ←"),
         state.progress.scores[lesson.id] != null
           ? el("span", { style: S.scoreTag }, `⭐ ${state.progress.scores[lesson.id]}`)
           : null,
@@ -217,7 +388,9 @@ function buildLessonCard(lesson, i) {
   );
 }
 
-// ---- LESSON ----
+// ============================================================
+// LESSON SCREEN
+// ============================================================
 function buildLesson() {
   const lesson = state.activeLesson;
   return el("div", { style: S.root },
@@ -236,15 +409,13 @@ function buildLesson() {
     el("div", { style: S.lessonFooter },
       el("button", {
         style: { ...S.btn, background: lesson.color },
-        onclick: () => {
-          state.progress.completed = state.progress.completed.includes(lesson.id)
-            ? state.progress.completed
-            : [...state.progress.completed, lesson.id];
-          saveProgress();
-          state.quizIdx = 0;
-          state.quizSelected = null;
-          state.quizScore = 0;
-          state.quizDone = false;
+        onclick: async () => {
+          if (!state.progress.completed.includes(lesson.id)) {
+            state.progress.completed = [...state.progress.completed, lesson.id];
+            await saveCloudProgress();
+          }
+          state.quizIdx = 0; state.quizSelected = null;
+          state.quizScore = 0; state.quizDone = false;
           state.screen = "quiz";
           render();
         },
@@ -253,19 +424,17 @@ function buildLesson() {
   );
 }
 
-// ---- QUIZ ----
+// ============================================================
+// QUIZ SCREEN
+// ============================================================
 function buildQuiz() {
   const lesson = state.activeLesson;
   if (state.quizDone) {
-    const pct = Math.round((state.quizScore / lesson.quiz.length) * 100);
-    // Save score
-    state.progress.scores[lesson.id] = Math.max(state.progress.scores[lesson.id] || 0, state.quizScore);
-    saveProgress();
     return el("div", { style: S.root },
       buildBack("home"),
       el("div", { style: S.resultBox },
-        el("div", { style: S.resultEmoji }, pct >= 80 ? "🏆" : pct >= 50 ? "👍" : "💪"),
-        el("h2", { style: S.resultTitle }, pct >= 80 ? "ممتاز!" : pct >= 50 ? "جيد!" : "حاول مرة أخرى"),
+        el("div", { style: S.resultEmoji }, state.quizScore / lesson.quiz.length >= 0.8 ? "🏆" : state.quizScore / lesson.quiz.length >= 0.5 ? "👍" : "💪"),
+        el("h2", { style: S.resultTitle }, state.quizScore / lesson.quiz.length >= 0.8 ? "ممتاز!" : state.quizScore / lesson.quiz.length >= 0.5 ? "جيد!" : "حاول مرة أخرى"),
         el("div", { style: S.resultScore }, `${state.quizScore} / ${lesson.quiz.length}`),
         el("div", { style: S.resultStars }, ...Array.from({ length: state.quizScore }, () => el("span", {}, "⭐"))),
         el("button", {
@@ -275,14 +444,13 @@ function buildQuiz() {
       ),
     );
   }
-
   const q = lesson.quiz[state.quizIdx];
   return el("div", { style: S.root },
     buildBack("lesson"),
     el("div", { style: S.quizHeader },
       el("div", { style: S.quizCounter }, `السؤال ${state.quizIdx + 1} من ${lesson.quiz.length}`),
       el("div", { style: S.quizTrack },
-        el("div", { style: { ...S.quizFill, width: `${((state.quizIdx) / lesson.quiz.length) * 100}%`, background: lesson.color } }),
+        el("div", { style: { ...S.quizFill, width: `${(state.quizIdx / lesson.quiz.length) * 100}%`, background: lesson.color } }),
       ),
     ),
     el("div", { style: S.quizBox },
@@ -296,22 +464,29 @@ function buildQuiz() {
           }
           return el("button", {
             style: { ...S.option, background: bg, border },
-            onclick: () => {
+            onclick: async () => {
               if (state.quizSelected !== null) return;
               const correct = i === q.answer;
               state.quizSelected = i;
               if (correct) state.quizScore++;
               render();
-              setTimeout(() => {
-                if (state.quizIdx + 1 >= lesson.quiz.length) state.quizDone = true;
-                else { state.quizIdx++; state.quizSelected = null; }
+              setTimeout(async () => {
+                if (state.quizIdx + 1 >= lesson.quiz.length) {
+                  state.quizDone = true;
+                  const best = Math.max(state.progress.scores[lesson.id] || 0, state.quizScore);
+                  state.progress.scores[lesson.id] = best;
+                  await saveCloudProgress();
+                } else {
+                  state.quizIdx++;
+                  state.quizSelected = null;
+                }
                 render();
               }, 900);
             },
           },
             opt,
-            state.quizSelected !== null && i === q.answer ? el("span", { style: { color: "#43C6AC", marginRight: "8px" } }, " ✅") : null,
-            state.quizSelected === i && i !== q.answer ? el("span", { style: { color: "#FF6584", marginRight: "8px" } }, " ❌") : null,
+            state.quizSelected !== null && i === q.answer ? el("span", { style: { color: "#43C6AC" } }, " ✅") : null,
+            state.quizSelected === i && i !== q.answer ? el("span", { style: { color: "#FF6584" } }, " ❌") : null,
           );
         }),
       ),
@@ -319,11 +494,12 @@ function buildQuiz() {
   );
 }
 
-// ---- GAMES ----
+// ============================================================
+// GAMES SCREEN
+// ============================================================
 function buildGames() {
   if (state.gameCards.length === 0) initGame();
   const allMatched = state.gameMatched.length === 4;
-
   return el("div", { style: S.root },
     buildBack("home"),
     el("div", { style: S.gameHeader },
@@ -337,7 +513,7 @@ function buildGames() {
     allMatched
       ? el("div", { style: S.resultBox },
           el("div", { style: S.resultEmoji }, "🏆"),
-          el("h2", { style: S.resultTitle }, "أحسنت! أكملت اللعبة!"),
+          el("h2", { style: S.resultTitle }, "أحسنت!"),
           el("div", { style: S.resultScore }, `${state.gameMoves} حركة`),
           el("button", {
             style: { ...S.btn, background: "#6C63FF", marginTop: "20px" },
@@ -357,11 +533,10 @@ function initGame() {
     { term: "AGI", def: "الذكاء الاصطناعي العام" },
     { term: "تورينج", def: "سأل: هل تفكر الآلة؟" },
   ];
-  const cards = [
+  state.gameCards = [
     ...pairs.map((p, i) => ({ id: i * 2, text: p.term, pairId: i })),
     ...pairs.map((p, i) => ({ id: i * 2 + 1, text: p.def, pairId: i })),
   ].sort(() => Math.random() - 0.5);
-  state.gameCards = cards;
   state.gameFlipped = [];
   state.gameMatched = [];
   state.gameMoves = 0;
@@ -371,11 +546,7 @@ function buildGameCard(card) {
   const isFlipped = state.gameFlipped.includes(card.id) || state.gameMatched.includes(card.pairId);
   const isMatched = state.gameMatched.includes(card.pairId);
   return el("div", {
-    style: {
-      ...S.gameCard,
-      ...(isFlipped ? S.gameCardFlipped : {}),
-      ...(isMatched ? S.gameCardMatched : {}),
-    },
+    style: { ...S.gameCard, ...(isFlipped ? S.gameCardFlipped : {}), ...(isMatched ? S.gameCardMatched : {}) },
     onclick: () => {
       if (isFlipped || state.gameFlipped.length === 2) return;
       const newFlipped = [...state.gameFlipped, card.id];
@@ -399,15 +570,18 @@ function buildGameCard(card) {
   }, isFlipped ? card.text : "?");
 }
 
-// ---- STATS ----
+// ============================================================
+// STATS SCREEN
+// ============================================================
 function buildStats() {
   const done = state.progress.completed.length;
-  const stars = getTotalStars();
+  const stars = Object.values(state.progress.scores).reduce((a, b) => a + b, 0);
   return el("div", { style: S.root },
     buildBack("home"),
     el("div", { style: S.statsHeader },
       el("div", { style: { fontSize: "52px", marginBottom: "6px" } }, "📈"),
       el("h2", { style: S.statsTitle }, "تقدمي"),
+      el("p", { style: { color: "#888", fontSize: "13px", margin: 0 } }, sb.userEmail),
     ),
     el("div", { style: S.statsGrid },
       buildStatCard(done.toString(), "دروس مكتملة", "#6C63FF"),
@@ -420,19 +594,16 @@ function buildStats() {
         el("div", { style: S.scoreRow },
           el("span", { style: { fontSize: "14px" } }, `${l.icon} ${l.title}`),
           el("span", { style: { color: l.color, fontSize: "13px", fontWeight: "700" } },
-            state.progress.scores[l.id] != null
-              ? `${state.progress.scores[l.id]}/${l.quiz.length} ⭐`
-              : "لم يُختبر بعد",
-          ),
+            state.progress.scores[l.id] != null ? `${state.progress.scores[l.id]}/${l.quiz.length} ⭐` : "لم يُختبر بعد"),
         ),
       ),
     ),
     el("button", {
       style: { ...S.btn, background: "#FF6584", margin: "20px 16px 0", width: "calc(100% - 32px)" },
-      onclick: () => {
+      onclick: async () => {
         if (confirm("هل تريد إعادة تعيين كل التقدم؟")) {
           state.progress = { completed: [], scores: {} };
-          saveProgress();
+          await saveCloudProgress();
           render();
         }
       },
@@ -473,15 +644,30 @@ function buildBack(to) {
 // STYLES
 // ============================================================
 const S = {
-  root: { fontFamily: "'Segoe UI', Tahoma, Arial, sans-serif", background: "#0f1120", minHeight: "100dvh", color: "#fff", direction: "rtl", maxWidth: "480px", margin: "0 auto", paddingBottom: "env(safe-area-inset-bottom, 20px)", overflowX: "hidden" },
+  root: { fontFamily: "'Segoe UI', Tahoma, Arial, sans-serif", background: "#0f1120", minHeight: "100dvh", color: "#fff", direction: "rtl", maxWidth: "480px", margin: "0 auto", paddingBottom: "40px" },
+  authRoot: { fontFamily: "'Segoe UI', Tahoma, Arial, sans-serif", background: "#0f1120", minHeight: "100dvh", color: "#fff", direction: "rtl", maxWidth: "480px", margin: "0 auto", padding: "60px 20px 40px", position: "relative", overflow: "hidden" },
+  authGlow: { position: "absolute", top: "-80px", left: "50%", transform: "translateX(-50%)", width: "400px", height: "400px", background: "radial-gradient(circle, rgba(108,99,255,0.2), transparent 70%)", borderRadius: "50%", pointerEvents: "none" },
+  authLogo: { fontSize: "64px", textAlign: "center", display: "block", marginBottom: "10px" },
+  authTitle: { fontSize: "22px", fontWeight: "800", textAlign: "center", background: "linear-gradient(135deg,#6C63FF,#43C6AC)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", margin: "0 0 4px" },
+  authSub: { textAlign: "center", color: "#888", fontSize: "14px", marginBottom: "32px" },
+  authCard: { background: "#1a1d2e", borderRadius: "20px", padding: "24px", boxShadow: "0 8px 32px rgba(0,0,0,0.4)" },
+  authTabs: { display: "flex", gap: "8px", marginBottom: "24px", background: "#0f1120", borderRadius: "12px", padding: "4px" },
+  authTab: { flex: 1, padding: "10px", borderRadius: "10px", border: "none", background: "transparent", color: "#888", fontSize: "14px", cursor: "pointer", fontFamily: "inherit", fontWeight: "600" },
+  authTabActive: { background: "#6C63FF", color: "#fff" },
+  authForm: { display: "flex", flexDirection: "column", gap: "12px" },
+  authLabel: { fontSize: "13px", color: "#aaa", marginBottom: "-6px" },
+  authInput: { padding: "14px 16px", borderRadius: "12px", border: "2px solid #2a2d3e", background: "#0f1120", color: "#fff", fontSize: "15px", fontFamily: "inherit", outline: "none", direction: "ltr", textAlign: "left" },
+  authError: { background: "rgba(255,101,132,0.12)", border: "1px solid rgba(255,101,132,0.3)", borderRadius: "10px", padding: "10px 14px", fontSize: "13px", color: "#FF6584" },
+  authBtn: { padding: "15px", borderRadius: "14px", border: "none", background: "linear-gradient(135deg, #6C63FF, #43C6AC)", color: "#fff", fontSize: "16px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", marginTop: "8px" },
   header: { position: "relative", overflow: "hidden", padding: "52px 20px 20px", textAlign: "center" },
   headerGlow: { position: "absolute", top: "-60px", left: "50%", transform: "translateX(-50%)", width: "300px", height: "300px", background: "radial-gradient(circle, rgba(108,99,255,0.25), transparent 70%)", borderRadius: "50%", pointerEvents: "none" },
   logo: { fontSize: "60px", marginBottom: "8px", display: "block" },
-  title: { fontSize: "24px", fontWeight: "800", margin: "0 0 4px", background: "linear-gradient(135deg,#6C63FF,#43C6AC)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" },
-  subtitle: { color: "#888", margin: "0 0 12px", fontSize: "14px" },
-  badgesRow: { display: "flex", gap: "10px", justifyContent: "center", flexWrap: "wrap" },
-  starBadge: { background: "rgba(255,215,0,0.12)", color: "#FFD700", padding: "4px 14px", borderRadius: "20px", fontSize: "13px" },
-  progressBadge: { background: "rgba(108,99,255,0.12)", color: "#6C63FF", padding: "4px 14px", borderRadius: "20px", fontSize: "13px" },
+  title: { fontSize: "22px", fontWeight: "800", margin: "0 0 4px", background: "linear-gradient(135deg,#6C63FF,#43C6AC)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" },
+  subtitle: { color: "#888", margin: "0 0 10px", fontSize: "12px", direction: "ltr" },
+  badgesRow: { display: "flex", gap: "8px", justifyContent: "center", flexWrap: "wrap" },
+  starBadge: { background: "rgba(255,215,0,0.12)", color: "#FFD700", padding: "4px 12px", borderRadius: "20px", fontSize: "12px" },
+  progressBadge: { background: "rgba(108,99,255,0.12)", color: "#6C63FF", padding: "4px 12px", borderRadius: "20px", fontSize: "12px" },
+  syncBadge: { background: "rgba(67,198,172,0.12)", color: "#43C6AC", padding: "4px 12px", borderRadius: "20px", fontSize: "12px" },
   progressTrack: { height: "5px", background: "#1e2235", margin: "0 20px 14px" },
   progressFill: { height: "100%", background: "linear-gradient(90deg,#6C63FF,#43C6AC)", borderRadius: "3px", transition: "width .5s" },
   nav: { display: "flex", gap: "8px", padding: "0 16px 14px", justifyContent: "center" },
@@ -494,8 +680,7 @@ const S = {
   cardTitle: { fontWeight: "700", fontSize: "15px", marginBottom: "4px" },
   cardMeta: { display: "flex", gap: "10px", alignItems: "center" },
   scoreTag: { background: "rgba(255,215,0,0.12)", color: "#FFD700", padding: "2px 8px", borderRadius: "10px", fontSize: "12px" },
-  installHint: { margin: "20px 16px 0", background: "rgba(108,99,255,0.08)", border: "1px solid rgba(108,99,255,0.2)", borderRadius: "14px", padding: "12px 16px", display: "flex", gap: "10px", alignItems: "center", fontSize: "12px", color: "#aaa", lineHeight: "1.5" },
-  installIcon: { fontSize: "22px", flexShrink: 0 },
+  logoutBtn: { display: "block", margin: "16px auto", background: "none", border: "1px solid #2a2d3e", color: "#888", padding: "8px 20px", borderRadius: "20px", fontSize: "13px", cursor: "pointer", fontFamily: "inherit" },
   back: { background: "none", border: "none", color: "#6C63FF", fontSize: "15px", cursor: "pointer", padding: "16px 20px", display: "block", fontFamily: "inherit" },
   lessonHeader: { borderRadius: "0 0 28px 28px", padding: "28px 20px 24px", textAlign: "center" },
   lessonHeaderIcon: { fontSize: "52px", marginBottom: "8px" },
@@ -513,7 +698,7 @@ const S = {
   quizBox: { padding: "20px" },
   quizQ: { fontSize: "17px", fontWeight: "700", marginBottom: "22px", lineHeight: "1.6", textAlign: "center" },
   options: { display: "flex", flexDirection: "column", gap: "10px" },
-  option: { padding: "14px 16px", borderRadius: "13px", color: "#fff", fontSize: "14px", cursor: "pointer", textAlign: "right", transition: "all .2s", fontFamily: "inherit", lineHeight: "1.4" },
+  option: { padding: "14px 16px", borderRadius: "13px", color: "#fff", fontSize: "14px", cursor: "pointer", textAlign: "right", fontFamily: "inherit", lineHeight: "1.4" },
   resultBox: { textAlign: "center", padding: "40px 20px" },
   resultEmoji: { fontSize: "72px", marginBottom: "12px" },
   resultTitle: { fontSize: "26px", fontWeight: "800", margin: "0 0 8px" },
@@ -526,7 +711,7 @@ const S = {
   movesTag: { background: "rgba(108,99,255,0.12)", color: "#6C63FF", padding: "4px 12px", borderRadius: "20px", fontSize: "13px" },
   matchedTag: { background: "rgba(67,198,172,0.12)", color: "#43C6AC", padding: "4px 12px", borderRadius: "20px", fontSize: "13px" },
   gameGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", padding: "0 16px" },
-  gameCard: { background: "#1a1d2e", borderRadius: "14px", padding: "18px 10px", textAlign: "center", cursor: "pointer", minHeight: "80px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", fontWeight: "700", transition: "all .2s", border: "2px solid #2a2d3e" },
+  gameCard: { background: "#1a1d2e", borderRadius: "14px", padding: "18px 10px", textAlign: "center", cursor: "pointer", minHeight: "80px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", fontWeight: "700", border: "2px solid #2a2d3e" },
   gameCardFlipped: { background: "rgba(108,99,255,0.12)", border: "2px solid #6C63FF", fontSize: "12px", fontWeight: "600", color: "#ddd" },
   gameCardMatched: { background: "rgba(67,198,172,0.12)", border: "2px solid #43C6AC", opacity: 0.65 },
   statsHeader: { textAlign: "center", padding: "20px 20px 10px" },
