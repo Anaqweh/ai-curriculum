@@ -1,28 +1,624 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
-  <meta name="theme-color" content="#0f1120" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="منهج الذكاء" />
-  <meta name="description" content="تطبيق منهج الذكاء الاصطناعي للمرحلة المتوسطة" />
-  <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png" />
-  <link rel="apple-touch-icon" sizes="152x152" href="icon-152.png" />
-  <link rel="apple-touch-icon" sizes="120x120" href="icon-120.png" />
-  <link rel="apple-touch-startup-image" href="splash.png" />
-  <link rel="manifest" href="manifest.json" />
-  <title>منهج الذكاء الاصطناعي</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html, body { height: 100%; background: #0f1120; }
-    #root { height: 100%; }
-    body { overscroll-behavior: none; }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>منصة تقييم اللغة العربية — أ. أحمد عناقوة</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&family=Amiri:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ink:#1a1a2e;--deep:#16213e;--gold:#c9a84c;--gold2:#e8c96d;
+  --cream:#f5f0e8;--rust:#c0392b;--sage:#2e7d5e;--light:#faf8f3;
+  --shadow:rgba(26,26,46,0.15);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Tajawal',sans-serif;background:var(--light);color:var(--ink);min-height:100vh;direction:rtl;}
+.screen{display:none;min-height:100vh;}
+.screen.active{display:flex;flex-direction:column;}
+
+/* ===== LANDING ===== */
+#sc-landing{background:var(--ink);align-items:center;justify-content:center;position:relative;overflow:hidden;}
+.bg-pattern{position:absolute;inset:0;background-image:repeating-linear-gradient(45deg,rgba(201,168,76,.04) 0,rgba(201,168,76,.04) 1px,transparent 0,transparent 50%);background-size:30px 30px;}
+.bg-circle{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,.12),transparent 70%);}
+.bc1{width:600px;height:600px;top:-200px;right:-200px;}
+.bc2{width:400px;height:400px;bottom:-150px;left:-100px;}
+.landing-content{position:relative;text-align:center;padding:40px 24px;max-width:680px;animation:fadeUp .8s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+.brand-icon{width:90px;height:90px;margin:0 auto 24px;background:linear-gradient(135deg,var(--gold),var(--gold2));border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:44px;box-shadow:0 20px 60px rgba(201,168,76,.3);}
+.teacher-tag{background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);border-radius:30px;padding:6px 18px;color:var(--gold2);font-size:13px;display:inline-block;margin-bottom:16px;}
+.brand-title{font-family:'Amiri',serif;font-size:clamp(26px,5vw,44px);color:#fff;font-weight:700;line-height:1.3;margin-bottom:10px;}
+.brand-sub{color:rgba(255,255,255,.55);font-size:15px;margin-bottom:36px;line-height:1.8;}
+.grade-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:28px;}
+.grade-card{background:rgba(255,255,255,.06);border:1.5px solid rgba(201,168,76,.2);border-radius:16px;padding:22px 16px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;}
+.grade-card:hover,.grade-card.selected{border-color:var(--gold);background:rgba(201,168,76,.1);transform:translateY(-3px);box-shadow:0 12px 40px rgba(201,168,76,.2);}
+.grade-num{font-size:36px;font-weight:900;color:var(--gold);font-family:'Amiri',serif;}
+.grade-label{font-size:13px;color:rgba(255,255,255,.65);margin-top:4px;}
+.grade-count{font-size:11px;color:rgba(201,168,76,.6);margin-top:4px;}
+.start-btn{width:100%;padding:18px;border:none;border-radius:16px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--ink);font-family:'Tajawal',sans-serif;font-size:18px;font-weight:800;cursor:pointer;transition:all .25s;box-shadow:0 8px 30px rgba(201,168,76,.35);}
+.start-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 12px 40px rgba(201,168,76,.5);}
+.start-btn:disabled{opacity:.35;cursor:not-allowed;}
+
+/* ===== AUTH ===== */
+#sc-auth{background:var(--light);align-items:center;justify-content:center;}
+.auth-card{background:#fff;border-radius:28px;padding:40px 32px;box-shadow:0 20px 60px var(--shadow);max-width:460px;width:90%;animation:fadeUp .5s ease both;}
+.auth-tabs{display:flex;gap:8px;margin-bottom:28px;background:var(--light);border-radius:12px;padding:4px;}
+.auth-tab{flex:1;padding:10px;border-radius:10px;border:none;background:transparent;color:#888;font-family:'Tajawal',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;}
+.auth-tab.active{background:var(--ink);color:#fff;}
+.auth-header{text-align:center;margin-bottom:28px;}
+.auth-icon{font-size:44px;margin-bottom:10px;}
+.auth-title{font-family:'Amiri',serif;font-size:24px;font-weight:700;color:var(--ink);}
+.auth-sub{color:#999;font-size:13px;margin-top:5px;}
+.form-group{margin-bottom:16px;}
+.form-label{display:block;font-size:13px;font-weight:700;color:var(--ink);margin-bottom:7px;}
+.form-input{width:100%;padding:13px 16px;border:2px solid #e8e4db;border-radius:12px;font-family:'Tajawal',sans-serif;font-size:15px;color:var(--ink);background:#faf9f7;transition:border-color .2s;outline:none;}
+.form-input:focus{border-color:var(--gold);}
+.form-select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:left 14px center;}
+.auth-btn{width:100%;padding:15px;border:none;border-radius:14px;background:linear-gradient(135deg,var(--ink),#2d2d5e);color:#fff;font-family:'Tajawal',sans-serif;font-size:16px;font-weight:800;cursor:pointer;margin-top:8px;transition:all .25s;}
+.auth-btn:hover{box-shadow:0 8px 24px rgba(26,26,46,.25);transform:translateY(-2px);}
+.auth-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.auth-err{background:#fdecea;border:1px solid #f5c6c2;border-radius:10px;padding:10px 14px;font-size:13px;color:var(--rust);margin-bottom:12px;}
+.auth-info{background:#fdf8ee;border:1px solid rgba(201,168,76,.3);border-radius:10px;padding:10px 14px;font-size:13px;color:#8a6d1a;margin-bottom:12px;}
+
+/* ===== EXAM ===== */
+#sc-exam{background:var(--light);}
+.exam-topbar{background:var(--ink);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;}
+.exam-student{color:rgba(255,255,255,.75);font-size:13px;}
+.exam-student strong{color:var(--gold);}
+.exam-timer{background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:20px;padding:5px 14px;color:var(--gold);font-size:14px;font-weight:700;}
+.exam-timer.warn{color:#e74c3c;border-color:#e74c3c;background:rgba(231,76,60,.1);}
+.exam-progress-wrap{padding:16px 20px 0;}
+.exam-progress-info{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.section-badge{background:var(--ink);color:var(--gold);padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;}
+.q-counter{font-size:13px;color:#999;}
+.progress-bar{height:6px;background:#e8e4db;border-radius:3px;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:3px;transition:width .4s ease;}
+.question-area{padding:16px 20px;}
+.question-card{background:#fff;border-radius:20px;padding:26px 22px;box-shadow:0 4px 20px var(--shadow);margin-bottom:14px;animation:slideIn .3s ease both;}
+@keyframes slideIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}}
+.passage-box{background:#faf8f3;border-right:4px solid var(--gold);border-radius:12px;padding:16px;margin-bottom:18px;font-family:'Amiri',serif;font-size:16px;line-height:2.1;color:var(--ink);}
+.passage-label{font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.5px;margin-bottom:8px;}
+.q-text{font-size:16px;font-weight:700;color:var(--ink);line-height:1.6;margin-bottom:18px;}
+.options-grid{display:flex;flex-direction:column;gap:9px;}
+.option-btn{width:100%;padding:13px 16px;border:2px solid #e8e4db;border-radius:13px;background:#faf9f7;text-align:right;font-family:'Tajawal',sans-serif;font-size:14px;color:var(--ink);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:10px;}
+.option-btn:hover:not(:disabled){border-color:var(--gold);background:#fdf8ee;}
+.option-btn.correct{border-color:var(--sage);background:#e8f5ee;color:var(--sage);}
+.option-btn.wrong{border-color:var(--rust);background:#fdecea;color:var(--rust);}
+.option-letter{width:26px;height:26px;border-radius:7px;background:rgba(201,168,76,.1);color:var(--gold);font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.option-btn.correct .option-letter{background:var(--sage);color:#fff;}
+.option-btn.wrong .option-letter{background:var(--rust);color:#fff;}
+.next-q-btn{width:100%;padding:14px;border:none;border-radius:13px;background:var(--ink);color:#fff;font-family:'Tajawal',sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px;display:none;transition:all .2s;}
+.next-q-btn.show{display:block;}
+.next-q-btn:hover{background:#2d2d5e;}
+
+/* ===== LOADING ===== */
+#sc-loading{background:var(--ink);align-items:center;justify-content:center;}
+.loader-wrap{text-align:center;}
+.spinner{width:56px;height:56px;border:3px solid rgba(201,168,76,.2);border-top-color:var(--gold);border-radius:50%;margin:0 auto 16px;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-txt{color:rgba(255,255,255,.55);font-size:14px;}
+
+/* ===== RESULTS ===== */
+#sc-results{background:var(--ink);padding:24px;justify-content:flex-start;overflow-y:auto;}
+.results-wrap{max-width:580px;width:100%;margin:0 auto;animation:fadeUp .6s ease both;}
+.results-top{text-align:center;margin-bottom:28px;}
+.res-name{font-family:'Amiri',serif;font-size:22px;color:rgba(255,255,255,.8);}
+.res-info{color:rgba(255,255,255,.45);font-size:13px;margin-top:4px;}
+.score-ring-wrap{display:flex;justify-content:center;margin:20px 0;}
+.score-ring{width:150px;height:150px;border-radius:50%;background:conic-gradient(var(--gold) var(--pct,0deg),rgba(255,255,255,.07) 0);display:flex;align-items:center;justify-content:center;box-shadow:0 0 50px rgba(201,168,76,.2);}
+.score-ring-inner{width:122px;height:122px;border-radius:50%;background:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.score-pct{font-size:38px;font-weight:900;color:var(--gold);font-family:'Amiri',serif;}
+.score-frac{font-size:12px;color:rgba(255,255,255,.4);}
+.level-row{text-align:center;margin-bottom:24px;}
+.level-badge{display:inline-block;padding:7px 22px;border-radius:30px;font-size:15px;font-weight:800;margin-bottom:8px;}
+.lv-ex{background:rgba(46,125,94,.2);color:#5ac99a;border:1.5px solid #5ac99a;}
+.lv-gd{background:rgba(201,168,76,.15);color:var(--gold2);border:1.5px solid var(--gold);}
+.lv-av{background:rgba(230,126,34,.15);color:#f39c12;border:1.5px solid #f39c12;}
+.lv-wk{background:rgba(192,57,43,.15);color:#e74c3c;border:1.5px solid #e74c3c;}
+.level-desc{color:rgba(255,255,255,.6);font-size:14px;line-height:1.7;max-width:420px;margin:0 auto;}
+.sec-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
+.sec-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:14px 10px;text-align:center;}
+.sec-ico{font-size:22px;margin-bottom:5px;}
+.sec-nm{font-size:11px;color:rgba(255,255,255,.45);margin-bottom:5px;}
+.sec-sc{font-size:19px;font-weight:800;color:var(--gold);}
+.sec-fr{font-size:11px;color:rgba(255,255,255,.25);}
+.recs-box{background:rgba(255,255,255,.04);border:1px solid rgba(201,168,76,.18);border-radius:18px;padding:22px;margin-bottom:18px;}
+.recs-title{font-size:15px;font-weight:800;color:var(--gold);margin-bottom:14px;}
+.rec-row{display:flex;gap:10px;align-items:flex-start;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05);}
+.rec-row:last-child{border:none;margin:0;padding:0;}
+.rec-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);margin-top:6px;flex-shrink:0;}
+.rec-txt{font-size:14px;color:rgba(255,255,255,.7);line-height:1.6;}
+.saved-badge{background:rgba(46,125,94,.15);border:1px solid #5ac99a;border-radius:10px;padding:8px 16px;color:#5ac99a;font-size:13px;text-align:center;margin-bottom:16px;}
+.retry-btn{width:100%;padding:15px;border:none;border-radius:14px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--ink);font-family:'Tajawal',sans-serif;font-size:16px;font-weight:800;cursor:pointer;transition:all .25s;}
+.retry-btn:hover{box-shadow:0 8px 30px rgba(201,168,76,.4);transform:translateY(-2px);}
+.footer-tag{text-align:center;margin-top:16px;color:rgba(255,255,255,.3);font-size:12px;}
+
+@media(max-width:420px){.sec-grid{grid-template-columns:1fr 1fr 1fr;}.auth-card{padding:28px 18px;}}
+</style>
 </head>
 <body>
-  <div id="root"></div>
-  <script src="app.js"></script>
+
+<!-- LANDING -->
+<div id="sc-landing" class="screen active">
+  <div class="bg-pattern"></div>
+  <div class="bg-circle bc1"></div>
+  <div class="bg-circle bc2"></div>
+  <div class="landing-content">
+    <div class="brand-icon">📖</div>
+    <div class="teacher-tag">👨‍🏫 أ. أحمد عناقوة — معلم اللغة العربية</div>
+    <h1 class="brand-title">منصة تقييم اللغة العربية</h1>
+    <p class="brand-sub">اختبار شامل في مهارات القراءة والكتابة والإملاء<br/>للصفوف الدراسية التاسع والعاشر</p>
+    <div class="grade-cards">
+      <div class="grade-card" onclick="selectGrade(9,this)">
+        <div class="grade-num">٩</div>
+        <div class="grade-label">الصف التاسع</div>
+        <div class="grade-count">50 سؤالاً</div>
+      </div>
+      <div class="grade-card" onclick="selectGrade(10,this)">
+        <div class="grade-num">١٠</div>
+        <div class="grade-label">الصف العاشر</div>
+        <div class="grade-count">50 سؤالاً</div>
+      </div>
+    </div>
+    <button class="start-btn" id="startBtn" disabled onclick="goToAuth()">ابدأ الاختبار ←</button>
+  </div>
+</div>
+
+<!-- AUTH -->
+<div id="sc-auth" class="screen">
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">تسجيل الدخول</button>
+      <button class="auth-tab" id="tab-register" onclick="switchTab('register')">حساب جديد</button>
+    </div>
+    <div class="auth-header">
+      <div class="auth-icon" id="authIcon">🔐</div>
+      <h2 class="auth-title" id="authTitle">أهلاً بك</h2>
+      <p class="auth-sub" id="authSub">سجّل دخولك للمتابعة</p>
+    </div>
+    <div id="authMsg"></div>
+    <div class="form-group">
+      <label class="form-label">البريد الإلكتروني</label>
+      <input class="form-input" id="authEmail" type="email" placeholder="example@email.com"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">كلمة المرور</label>
+      <input class="form-input" id="authPass" type="password" placeholder="••••••••"/>
+    </div>
+    <div id="registerFields" style="display:none">
+      <div class="form-group">
+        <label class="form-label">الاسم الكامل</label>
+        <input class="form-input" id="regName" type="text" placeholder="أدخل اسمك الكامل"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">الرقم المدرسي</label>
+        <input class="form-input" id="regStudentId" type="text" placeholder="رقمك في المدرسة"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">الجنس</label>
+        <select class="form-input form-select" id="regGender">
+          <option value="">اختر...</option>
+          <option value="ذكر">ذكر</option>
+          <option value="أنثى">أنثى</option>
+        </select>
+      </div>
+    </div>
+    <button class="auth-btn" id="authSubmitBtn" onclick="handleAuth()">دخول 🚀</button>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="sc-loading" class="screen">
+  <div class="loader-wrap">
+    <div class="spinner"></div>
+    <p class="loader-txt" id="loaderTxt">جاري التحميل...</p>
+  </div>
+</div>
+
+<!-- EXAM -->
+<div id="sc-exam" class="screen">
+  <div class="exam-topbar">
+    <div class="exam-student">طالب: <strong id="topName">-</strong></div>
+    <div class="exam-timer" id="examTimer">⏱ 45:00</div>
+  </div>
+  <div class="exam-progress-wrap">
+    <div class="exam-progress-info">
+      <span class="section-badge" id="secBadge">—</span>
+      <span class="q-counter" id="qCount">1/50</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progFill" style="width:0%"></div></div>
+  </div>
+  <div class="question-area" id="qArea"></div>
+</div>
+
+<!-- RESULTS -->
+<div id="sc-results" class="screen">
+  <div class="results-wrap" id="resWrap"></div>
+</div>
+
+<script>
+// ============================================================
+// SUPABASE
+// ============================================================
+const SB_URL = "https://urzwahnaketicarhaydm.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVyendhaG5ha2V0aWNhcmhheWRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MzIyOTUsImV4cCI6MjA5NTIwODI5NX0.ukkCi4DR4XnbQSTk2lMQkuXQivzmSnFt3nq6cUUCdnw";
+let _sb = null;
+function getSB() {
+  if (!_sb) _sb = window.supabase.createClient(SB_URL, SB_KEY);
+  return _sb;
+}
+const sb = { 
+  auth: { 
+    getSession: (...a) => getSB().auth.getSession(...a),
+    signInWithPassword: (...a) => getSB().auth.signInWithPassword(...a),
+    signUp: (...a) => getSB().auth.signUp(...a),
+    signOut: (...a) => getSB().auth.signOut(...a)
+  },
+  from: (...a) => getSB().from(...a)
+};
+
+// ============================================================
+// QUESTIONS BANK — 50 per grade
+// ============================================================
+const Q = {
+  9: {
+    sections: [
+      { name:"القراءة والفهم", icon:"📚", key:"reading", questions:[
+        {passage:"قال المتنبي: أنا الذي نظر الأعمى إلى أدبي / وأسمعت كلماتي من به صمم. يفخر المتنبي في هذا البيت بعظمة شعره وأثره في النفوس.", q:"بم يفخر المتنبي في هذا البيت؟", opts:["بشجاعته في الحروب","بعظمة شعره وأثره","بكرمه وعطائه","بنسبه وأصله"], ans:1},
+        {passage:"قال المتنبي: أنا الذي نظر الأعمى إلى أدبي / وأسمعت كلماتي من به صمم.", q:"ما الصورة البلاغية في 'نظر الأعمى إلى أدبي'؟", opts:["تشبيه","استعارة مكنية","مجاز مرسل","كناية"], ans:1},
+        {passage:"الصحراء العربية ليست مجرد رمال وحجارة، بل هي كتاب مفتوح من تاريخ الإنسان؛ ففيها آثار الحضارات القديمة والطرق التجارية التي ربطت الشرق بالغرب على مدى آلاف السنين.", q:"ما الفكرة الرئيسية للنص؟", opts:["وصف جمال الصحراء الطبيعي","الصحراء موروث حضاري وتاريخي غني","الطرق التجارية القديمة","صعوبة الحياة في الصحراء"], ans:1},
+        {passage:"الصحراء العربية ليست مجرد رمال وحجارة، بل هي كتاب مفتوح من تاريخ الإنسان.", q:"ما مرادف 'موروث' في السياق ذاته؟", opts:["مكتسب","موروث","مفقود","منسي"], ans:1},
+        {passage:"العلم نور يضيء طريق الإنسان في ظلمات الجهل؛ فبالعلم ارتقت الأمم وبُنيت الحضارات، وبه يمكن للإنسان أن يتجاوز حدوده ويصل إلى آفاق رحبة لم يكن يحلم بها.", q:"ما وجه الشبه في تشبيه العلم بالنور؟", opts:["الجمال والزينة","الإضاءة وإزالة الظلام","القوة والمتانة","الحرارة والدفء"], ans:1},
+        {passage:"العلم نور يضيء طريق الإنسان في ظلمات الجهل.", q:"ما نوع الأسلوب في هذه الجملة؟", opts:["أسلوب خبري","أسلوب إنشائي طلبي","أسلوب استفهامي","أسلوب نهي"], ans:0},
+        {passage:"من أقوال العرب: 'الوقت كالسيف إن لم تقطعه قطعك'. وهذا المثل يحثّ على استغلال الوقت واغتنامه قبل فواته.", q:"ما المغزى من هذا المثل؟", opts:["السيف سلاح خطير","يجب استغلال الوقت وعدم إضاعته","الوقت يمر بسرعة","الحياة قصيرة جداً"], ans:1},
+        {passage:"من أقوال العرب: 'الوقت كالسيف إن لم تقطعه قطعك'.", q:"ما نوع الأسلوب البلاغي في هذا القول؟", opts:["استعارة","تشبيه","طباق","مقابلة"], ans:1},
+        {q:"ما معنى 'التورية' في علم البديع؟", opts:["ذكر لفظ له معنيان قريب وبعيد ويُقصد البعيد","تشبيه شيء بشيء آخر","استخدام ألفاظ متضادة","تكرار حرف في بداية الكلمات"], ans:0},
+        {q:"أيٌّ من الآتي يمثّل 'المحسنات اللفظية'؟", opts:["الطباق والمقابلة","الجناس والسجع","الاستعارة والكناية","التشبيه والمجاز"], ans:1},
+        {passage:"قدّمت الحضارة الإسلامية للبشرية إسهامات جليلة في شتى ميادين المعرفة؛ من علم الفلك والرياضيات والطب والفلسفة، وكان ذلك في عصر ازدهر فيه العلم وتشجيع الخلفاء على البحث والاكتشاف.", q:"ما الذي ساعد على ازدهار العلوم في الحضارة الإسلامية وفق النص؟", opts:["الثروات المادية الوفيرة","تشجيع الخلفاء على البحث والاكتشاف","الانفتاح على الغرب","وفرة المكتبات"], ans:1},
+        {passage:"قدّمت الحضارة الإسلامية للبشرية إسهامات جليلة.", q:"ما مرادف 'جليلة' في النص؟", opts:["صغيرة","ضخمة وعظيمة","قديمة","جديدة"], ans:1},
+        {q:"في قول الشاعر: 'يا ليل الصبّ متى غده' — من المنادى هنا؟", opts:["الصبّ","ليل","غده","متى"], ans:1},
+        {q:"ما الفرق بين 'الحقيقة' و'المجاز' في اللغة؟", opts:["الحقيقة تعبير مجازي والمجاز لفظي","الحقيقة استخدام اللفظ في معناه الأصلي والمجاز في غير معناه","لا فرق بينهما","الحقيقة في الشعر والمجاز في النثر"], ans:1},
+        {q:"أيٌّ من الخصائص الآتية تميّز الأسلوب الأدبي الرفيع؟", opts:["كثرة الألفاظ الغريبة","الوضوح والجزالة وحسن الاختيار","الإطالة والتكرار","اقتباس الأمثال فقط"], ans:1},
+        {q:"ما المقصود بـ'الوحدة العضوية' في القصيدة؟", opts:["تشابه القصائد","ترابط أجزاء القصيدة وخدمة كل جزء للفكرة الكلية","تعدد الأغراض","قِصَر الأبيات"], ans:1},
+        {passage:"الأمانة خلق رفيع، والأمين محبوب عند الله وعند الناس؛ فمن اتّصف بها نال ثقة الجميع وفاز بحسن السمعة. وقد كان النبي صلى الله عليه وسلم يُلقّب بالصادق الأمين قبل البعثة.", q:"لماذا كان النبي يُلقَّب بالأمين؟", opts:["لشجاعته","لكرمه","لاتصافه بالأمانة والصدق","لعلمه الواسع"], ans:2},
+        {q:"ما نوع الصورة في: 'البحر يزأر بأمواجه'؟", opts:["تشبيه مجمل","استعارة مكنية","كناية","مجاز مرسل"], ans:1},
+      ]},
+      { name:"الكتابة والتعبير", icon:"✍️", key:"writing", questions:[
+        {q:"أيٌّ من الجمل الآتية صحيحة نحوياً؟", opts:["جاء الطلابُ مسرعين","جاء الطلابَ مسرعين","جاء الطلابِ مسرعين","جاء الطلابَ مسرعاً"], ans:0},
+        {q:"ما إعراب كلمة 'العلمَ' في: 'إن العلمَ نورٌ'؟", opts:["مبتدأ مرفوع","خبر مرفوع","اسم إنّ منصوب","فاعل مرفوع"], ans:2},
+        {q:"أيٌّ من الكلمات الآتية مجرورة بحرف الجر؟", opts:["قرأتُ الكتابَ","في الكتابِ فائدة","الكتابُ مفيد","أحبُّ الكتابَ"], ans:1},
+        {q:"ما نوع الفعل في: 'يجتهدُ الطالبُ'؟", opts:["فعل ماضٍ","فعل مضارع","فعل أمر","فعل ناقص"], ans:1},
+        {q:"أيٌّ من الجمل تحتوي على 'مفعول مطلق'؟", opts:["قرأت الكتابَ","اجتهد الطالبُ اجتهاداً","ذهبتُ إلى المدرسة","رأيتُ أستاذي"], ans:1},
+        {q:"ما الفعل المضارع المجزوم في الجمل الآتية؟", opts:["لن يتأخّرَ","يدرسُ الطالب","لم يهملْ واجبه","أن يجتهدَ"], ans:2},
+        {q:"أيٌّ من الأساليب الآتية يُعدّ أسلوب شرط؟", opts:["هل درستَ؟","إن تجتهدْ تنجحْ","اجتهدْ في دراستك","ما أجمل الطبيعة!"], ans:1},
+        {q:"ما علامة جزم الفعل المضارع الصحيح الآخر؟", opts:["الفتحة","الضمة","السكون","الكسرة"], ans:2},
+        {q:"أيٌّ من الجمل تشتمل على 'حال'؟", opts:["الطالبُ مجتهدٌ","جاء الطالبُ فرحاً","أكرمتُ الطالبَ","الطالبُ يدرسُ"], ans:1},
+        {q:"ما نوع 'ما' في: 'ما أجملَ السماءَ!'؟", opts:["ما نافية","ما استفهامية","ما التعجبية","ما الموصولة"], ans:2},
+        {q:"في الجملة: 'الكتابُ مفيدٌ' — ما الخبر؟", opts:["الكتاب","مفيد","الجملة كلها","لا يوجد خبر"], ans:1},
+        {q:"أيٌّ من الكلمات جمع مؤنث سالم؟", opts:["رجال","مسلمات","مساجد","أقلام"], ans:1},
+        {q:"ما الفرق بين الفعل اللازم والمتعدي؟", opts:["اللازم يكتفي بفاعله والمتعدي يحتاج مفعولاً","لا فرق بينهما","اللازم يحتاج مفعولاً والمتعدي يكتفي بفاعله","اللازم ماضٍ والمتعدي مضارع"], ans:0},
+        {q:"في: 'أكرمتُ المجتهدَ' — ما إعراب 'المجتهد'؟", opts:["فاعل","مبتدأ","مفعول به منصوب","خبر"], ans:2},
+        {q:"ما الضمير المتصل في: 'كتابُهُ جميل'؟", opts:["ياء المتكلم","واو الجماعة","هاء الغائب","تاء الخطاب"], ans:2},
+        {q:"أيٌّ من الجمل تحتوي على 'نعت'؟", opts:["جاء الطالبُ","رأيتُ الطالبَ المجتهدَ","الطالبُ يدرسُ","ذهبتُ إلى المدرسة"], ans:1},
+        {q:"ما المقصود بـ'البدل' في النحو؟", opts:["التوكيد المعنوي","التابع المقصود بالحكم دون متبوعه","النعت المعنوي","العطف بالواو"], ans:1},
+      ]},
+      { name:"الإملاء والرسم", icon:"🖊️", key:"spelling", questions:[
+        {q:"أيٌّ من الكلمات الآتية مكتوبة بشكل صحيح؟", opts:["مسئله","مسأله","مسألة","مسئلة"], ans:2},
+        {q:"في أيٍّ من الكلمات تُكتب همزة على نبرة (ئـ)؟", opts:["أكل","سُئل","بئر","رأس"], ans:1},
+        {q:"ما الكلمة المكتوبة بألف مقصورة؟", opts:["هداء","هداة","هدى","هداأ"], ans:2},
+        {q:"أيٌّ من الجمل خالية من الأخطاء الإملائية؟", opts:["ذهبت إلى السوق واشتريت خبزاً","ذهبت الى السوق واشتريت خبزا","ذهبت إلى السوق واشتريت خبزا","ذهبت الى السوق واشتريت خبزاً"], ans:0},
+        {q:"كيف تُكتب همزة 'سُئل'؟", opts:["على الألف","على الواو","على الياء (نبرة)","مفردة"], ans:2},
+        {q:"أيٌّ الكلمات تحتوي على همزة وصل؟", opts:["أمل","إبداع","استقبال","أكل"], ans:2},
+        {q:"ما الكلمة التي تُكتب بتاء مربوطة في آخرها؟", opts:["بيت","كتب","مدرسة","حجر"], ans:2},
+        {q:"أيٌّ من الكلمات تحتوي على 'واو الجماعة' التي لا تُلفظ؟", opts:["يكتبون","جاؤوا","يلعبون","مؤمنون"], ans:1},
+        {q:"كيف تُكتب 'لا' مع 'أحد' في: 'لا أحد موجود'؟", opts:["لأحد","لا أحد","لآحد","لااحد"], ans:1},
+        {q:"أيٌّ من الكلمات الآتية تحتوي على 'ألف فارقة'؟", opts:["يكتبُ","يكتبون","كتبوا","تكتبين"], ans:2},
+        {q:"ما الفرق بين التاء المربوطة والهاء؟", opts:["لا فرق بينهما","التاء المربوطة تُقرأ هاء في الوقف","الهاء دائماً صامتة","التاء أطول صوتاً"], ans:1},
+        {q:"أيٌّ من الكلمات تُكتب بهمزة على الواو؟", opts:["سؤال","سئال","سأال","سُءال"], ans:0},
+        {q:"ما الصحيح في كتابة: 'اقرأ الكتاب' أم 'اقرأ الكتاب'؟", opts:["اقرأ الكتاب (صحيح)","اقرء الكتاب","إقرأ الكتاب","اقراء الكتاب"], ans:0},
+        {q:"كيف تُكتب نون التوكيد في: 'اجتهدنّ يا طالب'؟", opts:["بنون واحدة مفتوحة","بنونين مشددة","بنون ساكنة","بنون مكسورة"], ans:1},
+        {q:"أيٌّ من الكلمات تُكتب بألف بعد واو الجماعة؟", opts:["يكتبون","دعوا","يدعون","كتبون"], ans:1},
+      ]}
+    ]
+  },
+  10: {
+    sections: [
+      { name:"القراءة والفهم", icon:"📚", key:"reading", questions:[
+        {passage:"قال ابن خلدون: 'إن الاجتماع الإنساني ضروري ويُعبَّر عنه بالعمران'. ويرى أن الدولة تمر بأطوار كأطوار حياة الإنسان، وهذا ما أسماه بنظرية العصبية.", q:"ما المقصود بـ'نظرية العصبية' عند ابن خلدون؟", opts:["نظرية في علم النفس","نظرية تفسر دورة قيام الدول وسقوطها","نظرية في الفلسفة","نظرية في الاقتصاد"], ans:1},
+        {passage:"قال ابن خلدون: 'إن الاجتماع الإنساني ضروري ويُعبَّر عنه بالعمران'.", q:"ما معنى 'العمران' في سياق ابن خلدون؟", opts:["البناء والتشييد","الاجتماع البشري والحضارة","الزراعة","الحرب"], ans:1},
+        {passage:"تواجه البيئة اليوم تحديات جسيمة؛ إذ يُسهم التلوث الصناعي وإزالة الغابات في تفاقم الاحترار العالمي. وترتفع درجات الحرارة بمعدل 1.2 درجة مئوية، مما ينذر بعواقب وخيمة.", q:"ما الاستنتاج المناسب من النص؟", opts:["البيئة بخير","التدخل البشري أسهم في تدهور البيئة","الاحترار ظاهرة طبيعية","لا حل لهذه المشكلة"], ans:1},
+        {passage:"تواجه البيئة اليوم تحديات جسيمة.", q:"ما مضاد 'تفاقم' في النص؟", opts:["ازداد","اشتدّ","تحسّن","تعقّد"], ans:2},
+        {passage:"الرومانسية تيار أدبي نشأ في أوروبا مطلع القرن التاسع عشر، يُعلي من قيمة العاطفة والخيال على حساب العقل والمنطق، ويتجه نحو الطبيعة والماضي البعيد هرباً من قسوة الواقع.", q:"ما الخصائص الأساسية للرومانسية وفق النص؟", opts:["العقل والمنطق","العاطفة والخيال والطبيعة","الواقعية والحداثة","التجريب والتجديد"], ans:1},
+        {passage:"الرومانسية تيار أدبي نشأ في أوروبا مطلع القرن التاسع عشر.", q:"ما مرادف 'يُعلي' في النص؟", opts:["يُهين","يرفع ويقدّم","يُقلّص","يُلغي"], ans:1},
+        {passage:"الذكاء الاصطناعي ثورة حقيقية في عالم التقنية؛ إذ يُحاكي قدرات الدماغ البشري في التعلم واتخاذ القرار. وتُشير التوقعات إلى أن هذه التقنية ستُعيد تشكيل سوق العمل خلال العقدين القادمين.", q:"ما الأثر المتوقع للذكاء الاصطناعي وفق النص؟", opts:["إلغاء التعليم","إعادة تشكيل سوق العمل","تطوير الرياضة","تحسين الصحة فقط"], ans:1},
+        {passage:"الذكاء الاصطناعي ثورة حقيقية في عالم التقنية.", q:"ما مرادف 'يُحاكي' في السياق؟", opts:["يُعارض","يُقلّد ويشابه","يتجاوز","يُلغي"], ans:1},
+        {q:"ما الفرق بين الشعر العمودي وشعر التفعيلة؟", opts:["لا فرق","العمودي يلتزم بالوزن والقافية وشعر التفعيلة يلتزم بتفعيلة واحدة دون قافية ثابتة","العمودي أحدث","شعر التفعيلة قديم"], ans:1},
+        {q:"ما المقصود بـ'الالتزام' في الأدب الحديث؟", opts:["الالتزام بالأوزان الشعرية","ربط الأدب بقضايا المجتمع والإنسان","الالتزام بالقواعد النحوية","تقليد القدامى"], ans:1},
+        {q:"أيٌّ من الأغراض الشعرية التالية تُعدّ من الأغراض الحديثة؟", opts:["المديح","الهجاء","الرثاء","قصيدة المقاومة"], ans:3},
+        {passage:"الترجمة جسر يصل الثقافات؛ فبفضلها اطّلع العرب في العصر العباسي على كنوز الفلسفة اليونانية والعلوم الفارسية والهندية. وقد أسّس الخليفة المأمون بيت الحكمة لهذا الغرض.", q:"ما الهدف من تأسيس بيت الحكمة؟", opts:["تعليم العربية","نقل العلوم والفلسفة إلى العربية","كتابة القرآن","إنشاء المكتبات فقط"], ans:1},
+        {q:"ما معنى 'الأسلوب الخبري المؤكد'؟", opts:["الجملة التي تحتوي على أداة نداء","الجملة المؤكدة بـ'إنّ' أو 'قد' أو القسم","الجملة الاستفهامية","الجملة الشرطية"], ans:1},
+        {q:"أيٌّ من الآتي يمثّل 'المقابلة' في البلاغة؟", opts:["'ضحك وبكى'","'المتنبي شاعر عظيم'","'الجو جميل اليوم'","'اقرأ كتابك'"], ans:0},
+        {q:"ما خصائص أسلوب المقال الأدبي؟", opts:["الدقة العلمية فقط","الموضوعية التامة","الذاتية والعاطفة والأسلوب الراقي","الإيجاز الشديد"], ans:2},
+        {q:"من أبرز رواد مدرسة الديوان في الشعر العربي؟", opts:["المتنبي وأبو تمام","العقاد والمازني وعبد الرحمن شكري","نزار قباني ومحمود درويش","البحتري وابن الرومي"], ans:1},
+        {passage:"السيرة الذاتية فن أدبي يرصد الكاتب فيه مسيرة حياته بأسلوب أدبي رفيع، يجمع بين الصدق والفن. ومن أبرز السير في الأدب العربي 'الأيام' لطه حسين.", q:"ما أبرز خصائص السيرة الذاتية وفق النص؟", opts:["الخيال والتهويل","الصدق والأسلوب الأدبي الرفيع","الغموض والإبهام","الاختصار الشديد"], ans:1},
+        {q:"ما المقصود بـ'التناص' في النقد الأدبي الحديث؟", opts:["سرقة النصوص","توظيف نصوص سابقة في نص جديد","تكرار الأفكار","الاقتباس المباشر فقط"], ans:1},
+      ]},
+      { name:"الكتابة والتعبير", icon:"✍️", key:"writing", questions:[
+        {q:"ما إعراب الاسم في: 'إنَّ العلمَ نورٌ'؟", opts:["مبتدأ مرفوع","اسم إنّ منصوب","خبر إنّ مرفوع","فاعل مرفوع"], ans:1},
+        {q:"أيٌّ من الجمل تحتوي على 'حال'؟", opts:["جاء الطالبُ","جاء الطالبُ مسرعاً","الطالبُ مجتهدٌ","أكرمتُ الطالبَ"], ans:1},
+        {q:"في أيٍّ من الجمل يكون الضمير 'هم' في محل جر؟", opts:["هم مجتهدون","أكرمتهم","مررتُ بهم","رأيتهم"], ans:2},
+        {q:"ما نوع الأسلوب في: 'هلّا ذاكرتَ دروسك؟'", opts:["تعجب","حثّ وتشجيع","نهي","أمر مباشر"], ans:1},
+        {q:"ما الفرق بين المفعول به والمفعول المطلق؟", opts:["لا فرق","المفعول به من وقع عليه الفعل والمطلق يؤكد الفعل أو يبيّن نوعه","المفعول به يسبق الفاعل","المطلق فعل ماضٍ"], ans:1},
+        {q:"أيٌّ من الجمل تحتوي على 'توكيد معنوي'؟", opts:["جاء المديرُ نفسُه","رأيتُ الطالبَ","اجتهدَ اجتهاداً","الكتابُ مفيدٌ"], ans:0},
+        {q:"ما إعراب 'خيراً' في: 'إن تفعل خيراً تُجزَ به'؟", opts:["فاعل","مفعول به منصوب","حال","مبتدأ"], ans:1},
+        {q:"أيٌّ من الاستخدامات الآتية صحيح لـ'كان'؟", opts:["كانَ الجوُ جميلاً","كانَ الجوُ جميلٌ","كانَ الجوَ جميلاً","كانَ الجوِ جميلاً"], ans:0},
+        {q:"ما الفعل الذي يرفع اسماً وينصب خبراً؟", opts:["كان وأخواتها","ظنّ وأخواتها","إنّ وأخواتها","ليس وحدها"], ans:0},
+        {q:"أيٌّ الجمل تحتوي على 'مستثنى بإلّا'؟", opts:["جاء الطلابُ","جاء الطلابُ إلّا محمداً","الطلابُ كلّهم مجتهدون","اجتهادُ الطلاب واضح"], ans:1},
+        {q:"ما المقصود بـ'الإسناد' في النحو؟", opts:["تعريف الاسم","نسبة الخبر إلى المبتدأ أو الفعل إلى الفاعل","الربط بالحروف","التوكيد"], ans:1},
+        {q:"ما إعراب 'مجتهداً' في: 'رأيتُه مجتهداً'؟", opts:["مفعول به","خبر كان","حال منصوبة","نعت"], ans:2},
+        {q:"ما نوع 'لا' في: 'لا طالبَ كسولٌ مفيدٌ'؟", opts:["لا النافية للجنس","لا الناهية","لا النافية العاملة","لا الزائدة"], ans:0},
+        {q:"أيٌّ من الأفعال الآتية منصوب بـ'أن' مضمرة؟", opts:["لنذهبَ إلى المدرسة","يدرسُ الطالبُ","لم يهملْ","ذهبتُ"], ans:0},
+        {q:"ما الفرق بين 'العطف بالواو' و'العطف بالفاء'؟", opts:["لا فرق","الواو للمطلق والفاء للترتيب والتعقيب","الواو أقوى","الفاء للمفرد فقط"], ans:1},
+        {q:"ما إعراب 'كتاباً' في: 'اشتريتُ كتاباً مفيداً'؟", opts:["فاعل","مفعول به منصوب","مبتدأ","خبر"], ans:1},
+        {q:"أيٌّ من الجمل تحتوي على 'خبر جملة فعلية'؟", opts:["الجوُ جميلٌ","الطالبُ يدرسُ","المدرسةُ كبيرةٌ","الكتابُ مفيدٌ"], ans:1},
+      ]},
+      { name:"الإملاء والرسم", icon:"🖊️", key:"spelling", questions:[
+        {q:"أيٌّ من الكلمات تحتوي على همزة وصل؟", opts:["إبداع","أكل","استقبال","أمل"], ans:2},
+        {q:"كيف تُكتب التاء في نهاية 'طالب' عند الوقف؟", opts:["تاء مفتوحة","تاء مربوطة","تُحذف","تُبدّل هاءً"], ans:0},
+        {q:"أيٌّ من الجمل خالية من الأخطاء الإملائية؟", opts:["إن الأمانةَ أساس النجاح","ان الأمانة اساس النجاح","إن الأمانه أساس النجاح","ان الأمانةَ اساس النجاح"], ans:0},
+        {q:"لماذا تُكتب 'هذا' بدون تنوين؟", opts:["لأنها مبنية على السكون","لأنها اسم إشارة مبني","لأنها ممنوعة من الصرف","لأنها معرفة بالإضافة"], ans:1},
+        {q:"أيٌّ من الكلمات تُكتب بياء (ي) لا بألف مقصورة (ى)؟", opts:["فتى","مستشفى","محامي","هدى"], ans:2},
+        {q:"ما الصحيح في كتابة همزة 'أُولئك'؟", opts:["اولئك","أولئك","اؤلئك","أولاءك"], ans:1},
+        {q:"كيف تُكتب 'ابن' بين علمين كـ'محمد بن أحمد'؟", opts:["بهمزة وصل","بهمزة قطع","بدون همزة","بتشديد الباء"], ans:0},
+        {q:"ما الصحيح في كتابة: 'هؤلاء الطلاب'؟", opts:["هؤلاء","هاؤلاء","هأولاء","هؤولاء"], ans:0},
+        {q:"أيٌّ من الكلمات تُكتب بهمزة على الألف (أ)؟", opts:["مسألة","سُئل","لؤلؤ","فئة"], ans:0},
+        {q:"ما الفرق بين 'أن' و'إن' في الكتابة؟", opts:["لا فرق","'أن' مفتوحة الهمزة و'إن' مكسورتها","'إن' أطول","'أن' للنفي"], ans:1},
+        {q:"في أيٍّ من الكلمات تُكتب الهمزة على السطر (ء) مفردة؟", opts:["سأل","مسألة","شيء","فئة"], ans:2},
+        {q:"أيٌّ من الجمل صحيحة إملائياً؟", opts:["إذا جئتَ أكرمتُك","اذا جئتَ أكرمتك","إذا جِءتَ أكرمتُك","اذا جِئتَ اكرمتك"], ans:0},
+        {q:"كيف تُكتب همزة كلمة 'رَأَى'؟", opts:["على الواو","على الياء","على الألف","مفردة على السطر"], ans:2},
+        {q:"ما الصحيح في كتابة نهاية: 'يبكي الطفلُ'؟", opts:["يبكي (بالياء)","يبكى (بالألف المقصورة)","يبكِ (بكسر الكاف)","يبكُ (بضم الكاف)"], ans:0},
+        {q:"أيٌّ الكلمات مكتوبة بشكل صحيح تماماً؟", opts:["اسئله","أسئله","أسئلة","اسئلة"], ans:2},
+      ]}
+    ]
+  }
+};
+
+// ============================================================
+// STATE
+// ============================================================
+let selGrade=null, user=null, userMeta={};
+let exam=null, secIdx=0, qIdx=0, answers={};
+let timerInt=null, timeLeft=45*60, selOpt=null;
+let authMode='login';
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('load', async () => {
+  const {data:{session}} = await sb.auth.getSession();
+  if (session) { user = session.user; userMeta = session.user.user_metadata||{}; }
+});
+
+// ============================================================
+// NAV
+// ============================================================
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById('sc-'+id).classList.add('active'); window.scrollTo(0,0); }
+
+function selectGrade(g,el){ selGrade=g; document.querySelectorAll('.grade-card').forEach(c=>c.classList.remove('selected')); el.classList.add('selected'); document.getElementById('startBtn').disabled=false; }
+
+function goToAuth(){
+  if(!selGrade) return;
+  if(user){ startExam(); return; }
+  show('auth');
+}
+
+function switchTab(mode){
+  authMode=mode;
+  document.getElementById('tab-login').classList.toggle('active',mode==='login');
+  document.getElementById('tab-register').classList.toggle('active',mode==='register');
+  document.getElementById('registerFields').style.display = mode==='register'?'block':'none';
+  document.getElementById('authIcon').textContent = mode==='login'?'🔐':'✍️';
+  document.getElementById('authTitle').textContent = mode==='login'?'أهلاً بك':'إنشاء حساب جديد';
+  document.getElementById('authSub').textContent = mode==='login'?'سجّل دخولك للمتابعة':'أدخل بياناتك للتسجيل';
+  document.getElementById('authSubmitBtn').textContent = mode==='login'?'دخول 🚀':'إنشاء حساب ✨';
+  document.getElementById('authMsg').innerHTML='';
+}
+
+function setMsg(html){ document.getElementById('authMsg').innerHTML=html; }
+
+async function handleAuth(){
+  const email=document.getElementById('authEmail').value.trim();
+  const pass=document.getElementById('authPass').value;
+  if(!email||!pass){ setMsg('<div class="auth-err">يرجى إدخال البريد وكلمة المرور</div>'); return; }
+  const btn=document.getElementById('authSubmitBtn');
+  btn.disabled=true; btn.textContent='جاري التحميل...';
+  try{
+    if(authMode==='login'){
+      const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
+      if(error) throw error;
+      user=data.user; userMeta=data.user.user_metadata||{};
+      startExam();
+    } else {
+      const name=document.getElementById('regName').value.trim();
+      const sid=document.getElementById('regStudentId').value.trim();
+      const gender=document.getElementById('regGender').value;
+      if(!name||!sid||!gender){ setMsg('<div class="auth-err">يرجى إكمال جميع البيانات</div>'); btn.disabled=false; btn.textContent='إنشاء حساب ✨'; return; }
+      const {data,error}=await sb.auth.signUp({email,password:pass,options:{data:{full_name:name,student_id:sid,gender}}});
+      if(error) throw error;
+      setMsg('<div class="auth-info">✅ تم إنشاء حسابك! إذا طُلب منك تأكيد البريد الإلكتروني يرجى التحقق منه، ثم سجّل دخولك.</div>');
+      switchTab('login');
+    }
+  } catch(e){
+    setMsg(`<div class="auth-err">${e.message}</div>`);
+  }
+  btn.disabled=false;
+  btn.textContent=authMode==='login'?'دخول 🚀':'إنشاء حساب ✨';
+}
+
+// ============================================================
+// EXAM
+// ============================================================
+async function startExam(){
+  document.getElementById('loaderTxt').textContent='جاري تحميل الأسئلة...';
+  show('loading');
+  await new Promise(r=>setTimeout(r,900));
+  exam=Q[selGrade];
+  secIdx=0; qIdx=0; answers={}; timeLeft=45*60; selOpt=null;
+  const name=userMeta.full_name||user.email||'طالب';
+  document.getElementById('topName').textContent=name;
+  document.getElementById('examTimer').className='exam-timer';
+  startTimer(); renderQ(); show('exam');
+}
+
+function startTimer(){
+  clearInterval(timerInt);
+  timerInt=setInterval(()=>{
+    timeLeft--;
+    const m=Math.floor(timeLeft/60).toString().padStart(2,'0');
+    const s=(timeLeft%60).toString().padStart(2,'0');
+    const el=document.getElementById('examTimer');
+    el.textContent=`⏱ ${m}:${s}`;
+    if(timeLeft<=300) el.className='exam-timer warn';
+    if(timeLeft<=0){clearInterval(timerInt);finishExam();}
+  },1000);
+}
+
+function renderQ(){
+  const sec=exam.sections[secIdx];
+  const q=sec.questions[qIdx];
+  const total=exam.sections.reduce((a,s)=>a+s.questions.length,0);
+  const done=exam.sections.slice(0,secIdx).reduce((a,s)=>a+s.questions.length,0)+qIdx;
+  document.getElementById('secBadge').textContent=sec.icon+' '+sec.name;
+  document.getElementById('qCount').textContent=`${done+1} / ${total}`;
+  document.getElementById('progFill').style.width=`${(done/total)*100}%`;
+  const ltrs=['أ','ب','ج','د'];
+  let h='<div class="question-card">';
+  if(q.passage) h+=`<div class="passage-box"><div class="passage-label">نص القراءة</div>${q.passage}</div>`;
+  h+=`<div class="q-text">${done+1}. ${q.q}</div><div class="options-grid">`;
+  q.opts.forEach((o,i)=>{ h+=`<button class="option-btn" id="o${i}" onclick="pickAns(${i})"><span class="option-letter">${ltrs[i]}</span>${o}</button>`; });
+  h+=`</div></div><button class="next-q-btn" id="nxtBtn" onclick="nextQ()">التالي ←</button>`;
+  document.getElementById('qArea').innerHTML=h;
+  selOpt=null;
+}
+
+function pickAns(i){
+  if(selOpt!==null) return;
+  selOpt=i;
+  const sec=exam.sections[secIdx]; const q=sec.questions[qIdx];
+  const key=`${secIdx}_${qIdx}`; answers[key]=i;
+  document.querySelectorAll('.option-btn').forEach((b,idx)=>{
+    b.disabled=true;
+    if(idx===q.ans) b.classList.add('correct');
+    else if(idx===i) b.classList.add('wrong');
+  });
+  document.getElementById('nxtBtn').classList.add('show');
+  const total=exam.sections.reduce((a,s)=>a+s.questions.length,0);
+  const done=exam.sections.slice(0,secIdx).reduce((a,s)=>a+s.questions.length,0)+qIdx+1;
+  document.getElementById('progFill').style.width=`${(done/total)*100}%`;
+}
+
+function nextQ(){
+  const sec=exam.sections[secIdx];
+  if(qIdx+1<sec.questions.length){qIdx++;renderQ();}
+  else if(secIdx+1<exam.sections.length){secIdx++;qIdx=0;renderQ();}
+  else finishExam();
+}
+
+// ============================================================
+// RESULTS
+// ============================================================
+async function finishExam(){
+  clearInterval(timerInt);
+  document.getElementById('loaderTxt').textContent='جاري حساب النتيجة...';
+  show('loading');
+  const secs=exam.sections;
+  let tot=0, totQ=0;
+  const secRes=secs.map((sec,si)=>{
+    let c=0;
+    sec.questions.forEach((q,qi)=>{ if(answers[`${si}_${qi}`]===q.ans) c++; });
+    tot+=c; totQ+=sec.questions.length;
+    return {name:sec.name,icon:sec.icon,key:sec.key,correct:c,total:sec.questions.length};
+  });
+  const pct=Math.round((tot/totQ)*100);
+  let level,lvClass,desc;
+  if(pct>=85){level='ممتاز 🏆';lvClass='lv-ex';desc='أداؤك متميز يدل على إتقان عالٍ. واصل التفوق!';}
+  else if(pct>=70){level='جيد جداً ⭐';lvClass='lv-gd';desc='أداؤك جيد وأنت على الطريق الصحيح. بعض التعزيز سيجعلك ممتازاً.';}
+  else if(pct>=55){level='متوسط 📘';lvClass='lv-av';desc='تحتاج مزيداً من المراجعة في بعض المهارات.';}
+  else{level='يحتاج تطوير 📝';lvClass='lv-wk';desc='لا تيأس! المثابرة والمراجعة ستحسّن نتائجك.';}
+  const recs=buildRecs(secRes,pct);
+
+  // Save to Supabase
+  let saved=false;
+  try{
+    if(user){
+      await sb.from('exam_results').insert({
+        user_id:user.id,
+        grade:selGrade,
+        score:tot,
+        total:totQ,
+        percentage:pct,
+        section_scores:secRes.map(s=>({key:s.key,correct:s.correct,total:s.total})),
+        taken_at:new Date().toISOString()
+      });
+      saved=true;
+    }
+  }catch(e){console.log('save error',e);}
+
+  await new Promise(r=>setTimeout(r,600));
+  const name=userMeta.full_name||user?.email||'طالب';
+  const pctDeg=`${pct*3.6}deg`;
+  let h=`
+    <div class="results-top">
+      <div class="res-name">🎓 ${name}</div>
+      <div class="res-info">الصف ${selGrade===9?'التاسع':'العاشر'} — ${userMeta.gender||''} — ${userMeta.student_id||''}</div>
+    </div>
+    <div class="score-ring-wrap">
+      <div class="score-ring" style="--pct:${pctDeg}">
+        <div class="score-ring-inner">
+          <div class="score-pct">${pct}%</div>
+          <div class="score-frac">${tot} / ${totQ}</div>
+        </div>
+      </div>
+    </div>
+    <div class="level-row">
+      <div class="level-badge ${lvClass}">${level}</div>
+      <p class="level-desc">${desc}</p>
+    </div>
+    <div class="sec-grid">
+      ${secRes.map(s=>`<div class="sec-card"><div class="sec-ico">${s.icon}</div><div class="sec-nm">${s.name}</div><div class="sec-sc">${Math.round((s.correct/s.total)*100)}%</div><div class="sec-fr">${s.correct}/${s.total}</div></div>`).join('')}
+    </div>
+    ${saved?'<div class="saved-badge">☁️ تم حفظ نتيجتك في قاعدة البيانات</div>':''}
+    <div class="recs-box">
+      <div class="recs-title">💡 توصيات للتحسين</div>
+      ${recs.map(r=>`<div class="rec-row"><div class="rec-dot"></div><div class="rec-txt">${r}</div></div>`).join('')}
+    </div>
+    <button class="retry-btn" onclick="resetAll()">🔄 إعادة الاختبار</button>
+    <div class="footer-tag">👨‍🏫 أ. أحمد عناقوة — منصة تقييم اللغة العربية</div>
+  `;
+  document.getElementById('resWrap').innerHTML=h;
+  show('results');
+}
+
+function buildRecs(secRes,pct){
+  const r=[];
+  secRes.forEach(s=>{
+    const p=(s.correct/s.total)*100;
+    if(s.key==='reading'&&p<70) r.push('📚 القراءة والفهم: خصّص وقتاً يومياً لقراءة نصوص متنوعة وتحليلها واستخراج أفكارها.');
+    if(s.key==='writing'&&p<70) r.push('✍️ الكتابة والنحو: راجع قواعد الإعراب والأساليب النحوية وطبّق بكتابة جمل يومياً.');
+    if(s.key==='spelling'&&p<70) r.push('🖊️ الإملاء: تدرّب على كتابة الهمزات والتاء المربوطة والألف المقصورة بتمارين يومية.');
+  });
+  if(pct>=85) r.push('🏆 أنت في المستوى الممتاز! اطّلع على نصوص أدبية متقدمة لصقل أسلوبك.');
+  r.push('📖 نصيحة: خصّص 20 دقيقة يومياً لقراءة القرآن الكريم والأدب العربي؛ فهما المرجع الأول للغة الصحيحة.');
+  return r;
+}
+
+function resetAll(){
+  selGrade=null;
+  document.querySelectorAll('.grade-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('startBtn').disabled=true;
+  show('landing');
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </body>
 </html>
