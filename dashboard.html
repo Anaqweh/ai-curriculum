@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>لوحة تحكم المعلم — أ. أحمد عناقوة</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&family=Amiri:wght@400;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root{
+  --ink:#1a1a2e;--gold:#c9a84c;--gold2:#e8c96d;
+  --sage:#2e7d5e;--rust:#c0392b;--light:#faf8f3;
+  --shadow:rgba(26,26,46,0.12);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Tajawal',sans-serif;background:#f0ede6;color:var(--ink);direction:rtl;}
+
+/* LOGIN */
+#sc-login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--ink);position:relative;overflow:hidden;}
+.login-glow{position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,.15),transparent 70%);top:-150px;right:-150px;}
+.login-card{background:#fff;border-radius:24px;padding:44px 36px;width:90%;max-width:420px;position:relative;box-shadow:0 24px 60px rgba(0,0,0,.35);animation:pop .5s ease both;}
+@keyframes pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+.login-icon{font-size:52px;text-align:center;display:block;margin-bottom:12px;}
+.login-title{font-family:'Amiri',serif;font-size:24px;font-weight:700;text-align:center;color:var(--ink);margin-bottom:4px;}
+.login-sub{color:#999;font-size:13px;text-align:center;margin-bottom:28px;}
+.lbl{display:block;font-size:13px;font-weight:700;color:var(--ink);margin-bottom:7px;}
+.inp{width:100%;padding:13px 16px;border:2px solid #e8e4db;border-radius:12px;font-family:'Tajawal',sans-serif;font-size:15px;outline:none;transition:border-color .2s;margin-bottom:16px;background:#faf9f7;}
+.inp:focus{border-color:var(--gold);}
+.login-btn{width:100%;padding:15px;border:none;border-radius:13px;background:linear-gradient(135deg,var(--ink),#2d2d5e);color:#fff;font-family:'Tajawal',sans-serif;font-size:16px;font-weight:800;cursor:pointer;transition:all .25s;}
+.login-btn:hover{box-shadow:0 8px 24px rgba(26,26,46,.3);transform:translateY(-2px);}
+.login-err{background:#fdecea;border:1px solid #f5c6c2;border-radius:10px;padding:10px 14px;font-size:13px;color:var(--rust);margin-bottom:14px;display:none;}
+
+/* DASHBOARD */
+#sc-dash{display:none;min-height:100vh;}
+.topbar{background:var(--ink);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 20px rgba(0,0,0,.3);}
+.topbar-brand{display:flex;align-items:center;gap:12px;}
+.topbar-icon{width:38px;height:38px;background:linear-gradient(135deg,var(--gold),var(--gold2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;}
+.topbar-title{font-family:'Amiri',serif;font-size:18px;color:#fff;font-weight:700;}
+.topbar-sub{font-size:12px;color:rgba(255,255,255,.45);margin-top:1px;}
+.topbar-actions{display:flex;align-items:center;gap:12px;}
+.btn-refresh{background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);color:var(--gold);padding:7px 16px;border-radius:20px;font-family:'Tajawal',sans-serif;font-size:13px;cursor:pointer;transition:all .2s;}
+.btn-refresh:hover{background:rgba(201,168,76,.25);}
+.btn-logout{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.7);padding:7px 16px;border-radius:20px;font-family:'Tajawal',sans-serif;font-size:13px;cursor:pointer;}
+
+.main{padding:28px;}
+
+/* STATS CARDS */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px;}
+.stat-card{background:#fff;border-radius:18px;padding:22px 20px;box-shadow:0 2px 16px var(--shadow);position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;right:0;width:4px;height:100%;background:var(--c,var(--gold));}
+.stat-num{font-size:36px;font-weight:900;color:var(--c,var(--gold));font-family:'Amiri',serif;}
+.stat-lbl{font-size:13px;color:#888;margin-top:4px;}
+.stat-icon{position:absolute;left:20px;top:50%;transform:translateY(-50%);font-size:36px;opacity:.15;}
+
+/* FILTERS */
+.filters-bar{background:#fff;border-radius:16px;padding:16px 20px;margin-bottom:20px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;box-shadow:0 2px 12px var(--shadow);}
+.filter-label{font-size:13px;font-weight:700;color:#888;}
+.filter-select{padding:8px 14px;border:1.5px solid #e8e4db;border-radius:10px;font-family:'Tajawal',sans-serif;font-size:14px;color:var(--ink);background:#faf9f7;cursor:pointer;outline:none;}
+.filter-select:focus{border-color:var(--gold);}
+.search-inp{padding:8px 14px;border:1.5px solid #e8e4db;border-radius:10px;font-family:'Tajawal',sans-serif;font-size:14px;color:var(--ink);background:#faf9f7;outline:none;min-width:200px;}
+.search-inp:focus{border-color:var(--gold);}
+.filter-count{margin-right:auto;font-size:13px;color:#aaa;}
+
+/* TABLE */
+.table-wrap{background:#fff;border-radius:18px;box-shadow:0 2px 16px var(--shadow);overflow:hidden;}
+.table-header{padding:18px 24px;border-bottom:1px solid #f0ede6;display:flex;align-items:center;justify-content:space-between;}
+.table-title{font-size:16px;font-weight:800;color:var(--ink);}
+.btn-export{background:linear-gradient(135deg,var(--gold),var(--gold2));border:none;color:var(--ink);padding:8px 18px;border-radius:10px;font-family:'Tajawal',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;}
+.btn-export:hover{box-shadow:0 4px 16px rgba(201,168,76,.3);}
+.tbl{width:100%;border-collapse:collapse;}
+.tbl thead tr{background:#faf8f3;}
+.tbl th{padding:12px 16px;text-align:right;font-size:12px;font-weight:700;color:#888;border-bottom:1px solid #f0ede6;white-space:nowrap;}
+.tbl td{padding:13px 16px;font-size:14px;border-bottom:1px solid #f9f7f3;vertical-align:middle;}
+.tbl tbody tr:hover{background:#fdf9f0;}
+.tbl tbody tr:last-child td{border-bottom:none;}
+.grade-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;}
+.g9{background:rgba(108,99,255,.1);color:#6C63FF;}
+.g10{background:rgba(67,198,172,.1);color:#43C6AC;}
+.score-bar-wrap{display:flex;align-items:center;gap:8px;}
+.score-bar{flex:1;height:6px;background:#f0ede6;border-radius:3px;min-width:60px;}
+.score-bar-fill{height:100%;border-radius:3px;transition:width .3s;}
+.score-pct{font-size:13px;font-weight:700;min-width:36px;}
+.level-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-left:6px;}
+.lv-ex{background:#5ac99a;}
+.lv-gd{background:var(--gold);}
+.lv-av{background:#f39c12;}
+.lv-wk{background:#e74c3c;}
+.date-cell{font-size:12px;color:#aaa;direction:ltr;text-align:left;}
+.empty-state{text-align:center;padding:60px 20px;color:#bbb;}
+.empty-icon{font-size:48px;margin-bottom:12px;}
+.loading-row td{text-align:center;padding:40px;color:#aaa;}
+
+/* CHARTS */
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+.chart-card{background:#fff;border-radius:18px;padding:22px;box-shadow:0 2px 16px var(--shadow);}
+.chart-title{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:16px;}
+.bar-chart{display:flex;flex-direction:column;gap:10px;}
+.bar-row{display:flex;align-items:center;gap:10px;}
+.bar-label{font-size:12px;color:#888;min-width:80px;text-align:right;}
+.bar-track{flex:1;height:20px;background:#f5f0e8;border-radius:6px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:6px;display:flex;align-items:center;padding-right:8px;font-size:11px;font-weight:700;color:#fff;transition:width .5s ease;}
+.pie-wrap{display:flex;flex-direction:column;gap:8px;}
+.pie-row{display:flex;align-items:center;gap:10px;}
+.pie-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+.pie-label{font-size:13px;color:#666;flex:1;}
+.pie-val{font-size:13px;font-weight:700;color:var(--ink);}
+
+@media(max-width:768px){
+  .charts-row{grid-template-columns:1fr;}
+  .topbar-title{font-size:15px;}
+  .tbl th:nth-child(4),.tbl td:nth-child(4),.tbl th:nth-child(6),.tbl td:nth-child(6){display:none;}
+  .main{padding:16px;}
+  .stats-row{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="sc-login">
+  <div class="login-glow"></div>
+  <div class="login-card">
+    <span class="login-icon">🔐</span>
+    <h1 class="login-title">لوحة تحكم المعلم</h1>
+    <p class="login-sub">أ. أحمد عناقوة — منصة تقييم اللغة العربية</p>
+    <div class="login-err" id="loginErr">كلمة المرور غير صحيحة</div>
+    <label class="lbl">كلمة المرور</label>
+    <input class="inp" id="pwdInp" type="password" placeholder="أدخل كلمة مرور المعلم"
+      onkeydown="if(event.key==='Enter')doLogin()"/>
+    <button class="login-btn" onclick="doLogin()">دخول لوحة التحكم 🚀</button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="sc-dash">
+  <div class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-icon">📖</div>
+      <div>
+        <div class="topbar-title">لوحة تحكم المعلم</div>
+        <div class="topbar-sub">أ. أحمد عناقوة</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn-refresh" onclick="loadData()">🔄 تحديث</button>
+      <button class="btn-logout" onclick="doLogout()">خروج</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- STATS -->
+    <div class="stats-row" id="statsRow">
+      <div class="stat-card" style="--c:#6C63FF"><div class="stat-num" id="st-total">—</div><div class="stat-lbl">إجمالي الاختبارات</div><div class="stat-icon">📝</div></div>
+      <div class="stat-card" style="--c:#43C6AC"><div class="stat-num" id="st-avg">—</div><div class="stat-lbl">متوسط الدرجات</div><div class="stat-icon">📊</div></div>
+      <div class="stat-card" style="--c:#c9a84c"><div class="stat-num" id="st-pass">—</div><div class="stat-lbl">نسبة النجاح (≥55%)</div><div class="stat-icon">✅</div></div>
+      <div class="stat-card" style="--c:#e74c3c"><div class="stat-num" id="st-fail">—</div><div class="stat-lbl">يحتاجون متابعة (&lt;55%)</div><div class="stat-icon">⚠️</div></div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">📊 توزيع المستويات</div>
+        <div class="pie-wrap" id="levelChart"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">📚 متوسط الأقسام</div>
+        <div class="bar-chart" id="secChart"></div>
+      </div>
+    </div>
+
+    <!-- FILTERS -->
+    <div class="filters-bar">
+      <span class="filter-label">تصفية:</span>
+      <select class="filter-select" id="gradeFilter" onchange="applyFilters()">
+        <option value="">كل الصفوف</option>
+        <option value="9">الصف التاسع</option>
+        <option value="10">الصف العاشر</option>
+      </select>
+      <select class="filter-select" id="levelFilter" onchange="applyFilters()">
+        <option value="">كل المستويات</option>
+        <option value="ex">ممتاز (≥85%)</option>
+        <option value="gd">جيد جداً (70-84%)</option>
+        <option value="av">متوسط (55-69%)</option>
+        <option value="wk">يحتاج تطوير (&lt;55%)</option>
+      </select>
+      <input class="search-inp" id="searchInp" placeholder="🔍 ابحث باسم الطالب..." oninput="applyFilters()"/>
+      <span class="filter-count" id="filterCount"></span>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-wrap">
+      <div class="table-header">
+        <div class="table-title">نتائج الطلاب</div>
+        <button class="btn-export" onclick="exportCSV()">⬇️ تصدير CSV</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>الاسم</th>
+              <th>الرقم المدرسي</th>
+              <th>الصف</th>
+              <th>النتيجة</th>
+              <th>المستوى</th>
+              <th>القراءة</th>
+              <th>الكتابة</th>
+              <th>الإملاء</th>
+              <th>التاريخ</th>
+            </tr>
+          </thead>
+          <tbody id="tblBody">
+            <tr class="loading-row"><td colspan="10">⏳ جاري التحميل...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TEACHER_PASSWORD = "ahmed2025";
+const SB_URL = "https://urzwahnaketicarhaydm.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVyendhaG5ha2V0aWNhcmhheWRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MzIyOTUsImV4cCI6MjA5NTIwODI5NX0.ukkCi4DR4XnbQSTk2lMQkuXQivzmSnFt3nq6cUUCdnw";
+
+let sb = null;
+let allData = [];
+let filtered = [];
+
+function initSB() {
+  if (!sb) sb = window.supabase.createClient(SB_URL, SB_KEY);
+  return sb;
+}
+
+// ============================================================
+// LOGIN
+// ============================================================
+function doLogin() {
+  const pwd = document.getElementById('pwdInp').value;
+  const err = document.getElementById('loginErr');
+  if (pwd === TEACHER_PASSWORD) {
+    err.style.display = 'none';
+    sessionStorage.setItem('teacher_auth', '1');
+    document.getElementById('sc-login').style.display = 'none';
+    document.getElementById('sc-dash').style.display = 'block';
+    loadData();
+  } else {
+    err.style.display = 'block';
+    document.getElementById('pwdInp').value = '';
+    document.getElementById('pwdInp').focus();
+  }
+}
+
+function doLogout() {
+  sessionStorage.removeItem('teacher_auth');
+  document.getElementById('sc-login').style.display = 'flex';
+  document.getElementById('sc-dash').style.display = 'none';
+}
+
+// Auto-login if session exists
+window.addEventListener('load', () => {
+  if (sessionStorage.getItem('teacher_auth') === '1') {
+    document.getElementById('sc-login').style.display = 'none';
+    document.getElementById('sc-dash').style.display = 'block';
+    loadData();
+  }
+});
+
+// ============================================================
+// LOAD DATA
+// ============================================================
+async function loadData() {
+  document.getElementById('tblBody').innerHTML = '<tr class="loading-row"><td colspan="10">⏳ جاري التحميل...</td></tr>';
+  try {
+    initSB();
+    // Get exam results with user metadata via join
+    const { data: results, error } = await sb
+      .from('exam_results')
+      .select('*')
+      .order('taken_at', { ascending: false });
+
+    if (error) throw error;
+
+    // Get user metadata
+    const userIds = [...new Set(results.map(r => r.user_id))];
+    const usersMap = {};
+
+    // Fetch profiles
+    const { data: profiles } = await sb
+      .from('profiles')
+      .select('*')
+      .in('id', userIds);
+
+    if (profiles) profiles.forEach(p => usersMap[p.id] = p);
+
+    allData = results.map(r => ({
+      ...r,
+      profile: usersMap[r.user_id] || {}
+    }));
+
+    applyFilters();
+    updateStats();
+    updateCharts();
+  } catch (e) {
+    document.getElementById('tblBody').innerHTML = `<tr class="loading-row"><td colspan="10">❌ خطأ: ${e.message}</td></tr>`;
+  }
+}
+
+// ============================================================
+// FILTERS
+// ============================================================
+function applyFilters() {
+  const grade = document.getElementById('gradeFilter').value;
+  const level = document.getElementById('levelFilter').value;
+  const search = document.getElementById('searchInp').value.trim().toLowerCase();
+
+  filtered = allData.filter(r => {
+    if (grade && String(r.grade) !== grade) return false;
+    const pct = r.percentage;
+    if (level === 'ex' && pct < 85) return false;
+    if (level === 'gd' && (pct < 70 || pct >= 85)) return false;
+    if (level === 'av' && (pct < 55 || pct >= 70)) return false;
+    if (level === 'wk' && pct >= 55) return false;
+    if (search) {
+      const name = (r.profile?.full_name || r.profile?.email || '').toLowerCase();
+      const sid = (r.profile?.student_id || '').toLowerCase();
+      if (!name.includes(search) && !sid.includes(search)) return false;
+    }
+    return true;
+  });
+
+  document.getElementById('filterCount').textContent = `${filtered.length} نتيجة`;
+  renderTable();
+}
+
+// ============================================================
+// TABLE
+// ============================================================
+function renderTable() {
+  if (!filtered.length) {
+    document.getElementById('tblBody').innerHTML = '<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">📭</div><div>لا توجد نتائج</div></div></td></tr>';
+    return;
+  }
+
+  const rows = filtered.map((r, i) => {
+    const pct = r.percentage;
+    const color = pct >= 85 ? '#5ac99a' : pct >= 70 ? '#c9a84c' : pct >= 55 ? '#f39c12' : '#e74c3c';
+    const lvClass = pct >= 85 ? 'lv-ex' : pct >= 70 ? 'lv-gd' : pct >= 55 ? 'lv-av' : 'lv-wk';
+    const lvText = pct >= 85 ? 'ممتاز' : pct >= 70 ? 'جيد جداً' : pct >= 55 ? 'متوسط' : 'يحتاج تطوير';
+    const name = r.profile?.full_name || r.profile?.email || '—';
+    const sid = r.profile?.student_id || '—';
+    const grade = r.grade === 9 ? '<span class="grade-badge g9">التاسع</span>' : '<span class="grade-badge g10">العاشر</span>';
+    const secs = Array.isArray(r.section_scores) ? r.section_scores : [];
+    const reading = secs.find(s => s.key === 'reading');
+    const writing = secs.find(s => s.key === 'writing');
+    const spelling = secs.find(s => s.key === 'spelling');
+    const secPct = s => s ? Math.round((s.correct / s.total) * 100) + '%' : '—';
+    const date = new Date(r.taken_at).toLocaleDateString('ar-SA', {year:'numeric',month:'short',day:'numeric'});
+
+    return `<tr>
+      <td style="color:#bbb;font-size:12px">${i + 1}</td>
+      <td style="font-weight:700">${name}</td>
+      <td style="color:#888;font-size:13px">${sid}</td>
+      <td>${grade}</td>
+      <td>
+        <div class="score-bar-wrap">
+          <div class="score-bar"><div class="score-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+          <span class="score-pct" style="color:${color}">${pct}%</span>
+        </div>
+        <div style="font-size:11px;color:#bbb;margin-top:2px">${r.score}/${r.total}</div>
+      </td>
+      <td><span class="level-dot ${lvClass}"></span>${lvText}</td>
+      <td style="font-size:13px">${secPct(reading)}</td>
+      <td style="font-size:13px">${secPct(writing)}</td>
+      <td style="font-size:13px">${secPct(spelling)}</td>
+      <td class="date-cell">${date}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('tblBody').innerHTML = rows;
+}
+
+// ============================================================
+// STATS
+// ============================================================
+function updateStats() {
+  const total = allData.length;
+  const avg = total ? Math.round(allData.reduce((s, r) => s + r.percentage, 0) / total) : 0;
+  const pass = allData.filter(r => r.percentage >= 55).length;
+  const fail = total - pass;
+  document.getElementById('st-total').textContent = total;
+  document.getElementById('st-avg').textContent = avg + '%';
+  document.getElementById('st-pass').textContent = pass;
+  document.getElementById('st-fail').textContent = fail;
+}
+
+// ============================================================
+// CHARTS
+// ============================================================
+function updateCharts() {
+  // Level distribution
+  const levels = [
+    { lbl: 'ممتاز (≥85%)', key: 'ex', color: '#5ac99a', min: 85, max: 101 },
+    { lbl: 'جيد جداً (70-84%)', key: 'gd', color: '#c9a84c', min: 70, max: 85 },
+    { lbl: 'متوسط (55-69%)', key: 'av', color: '#f39c12', min: 55, max: 70 },
+    { lbl: 'يحتاج تطوير', key: 'wk', color: '#e74c3c', min: 0, max: 55 },
+  ];
+  const total = allData.length || 1;
+  document.getElementById('levelChart').innerHTML = levels.map(l => {
+    const count = allData.filter(r => r.percentage >= l.min && r.percentage < l.max).length;
+    const pct = Math.round((count / total) * 100);
+    return `<div class="pie-row">
+      <div class="pie-dot" style="background:${l.color}"></div>
+      <div class="pie-label">${l.lbl}</div>
+      <div class="pie-val">${count} طالب (${pct}%)</div>
+    </div>`;
+  }).join('');
+
+  // Section averages
+  const secKeys = [
+    { key: 'reading', lbl: 'القراءة', color: '#6C63FF' },
+    { key: 'writing', lbl: 'الكتابة', color: '#43C6AC' },
+    { key: 'spelling', lbl: 'الإملاء', color: '#c9a84c' },
+  ];
+  document.getElementById('secChart').innerHTML = secKeys.map(s => {
+    const vals = allData.flatMap(r => {
+      const sec = (r.section_scores || []).find(x => x.key === s.key);
+      return sec ? [Math.round((sec.correct / sec.total) * 100)] : [];
+    });
+    const avg = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
+    return `<div class="bar-row">
+      <div class="bar-label">${s.lbl}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${avg}%;background:${s.color}">${avg}%</div></div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// EXPORT CSV
+// ============================================================
+function exportCSV() {
+  if (!filtered.length) return;
+  const headers = ['#','الاسم','الرقم المدرسي','الصف','النسبة','الدرجة','المجموع','المستوى','القراءة','الكتابة','الإملاء','التاريخ'];
+  const rows = filtered.map((r, i) => {
+    const lvText = r.percentage >= 85 ? 'ممتاز' : r.percentage >= 70 ? 'جيد جداً' : r.percentage >= 55 ? 'متوسط' : 'يحتاج تطوير';
+    const secs = r.section_scores || [];
+    const reading = secs.find(s => s.key === 'reading');
+    const writing = secs.find(s => s.key === 'writing');
+    const spelling = secs.find(s => s.key === 'spelling');
+    const secPct = s => s ? Math.round((s.correct / s.total) * 100) + '%' : '';
+    const date = new Date(r.taken_at).toLocaleDateString('ar-SA');
+    return [
+      i + 1,
+      r.profile?.full_name || '',
+      r.profile?.student_id || '',
+      r.grade === 9 ? 'التاسع' : 'العاشر',
+      r.percentage + '%',
+      r.score,
+      r.total,
+      lvText,
+      secPct(reading),
+      secPct(writing),
+      secPct(spelling),
+      date
+    ].join(',');
+  });
+  const csv = '\uFEFF' + [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'نتائج_الطلاب.csv';
+  a.click(); URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
